@@ -1,2 +1,9 @@
-# pgPretty - Your intentions may be ugly but your SQL doesn't have to be
+# pgPretty
 Go tool to beautify PostgreSQL statements
+
+Needs a lot of work still
+
+Todo list
+* tests
+* add support for missing sql syntax
+* other formatters

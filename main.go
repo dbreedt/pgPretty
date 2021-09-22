@@ -2,28 +2,15 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
-	pg_query "github.com/lfittl/pg_query_go"
+	"github.com/dbreedt/pgPretty/formatters"
+	helpers "github.com/dbreedt/pgPretty/helpers"
+	printers "github.com/dbreedt/pgPretty/printers"
+	pg_query "github.com/pganalyze/pg_query_go"
 )
 
-type caseFormatter func(s string) string
-
-var indent = "  "
-var keywordFormatter caseFormatter = strings.ToLower
-var detectedParameters = make(map[int]string)
-var paramCounter int
-var formatter *Formatter
-
-func p() {
-	panic("not supported")
-}
-
 func main() {
-
 	// TODO: Process parameters here
-
-	formatter = NewFormatter(false, true, 2)
 
 	sql := `
 	with tab as (
@@ -42,34 +29,38 @@ func main() {
 	SELECT *, t.id
 	from tab t
 	join tab2 t2      on t2.id = t.tab_id
+	--join lateral (select * from tab8 where tab8_key = t.lame_key) t3 on true
 	where not t.id and t.name like 'thing%'
 	and t.name = '24'
 	and t.num = 33
+	and t.numf = 22.321231
 	and t.arr = any(t2.arr)
 	and t.range between 20 and 2000
 	and t.range2 not between 20 and 300
 	and not t.bval
+	--and t.id in (select id from some_id_store where things = 'borked')
 	and (
 		t.opt is not null
 		or (
 			t.opt is null
 			and t.not_opt
 		)
-	)
+	)	and x = ?Name
 `
-
-	workingSQL := processNamedParameters(sql)
+	// remove any illegal named parameters and store them for later processing
+	workingSQL, detectedParameters := helpers.ProcessNamedParameters(sql)
 
 	tree, err := pg_query.Parse(workingSQL)
-
 	if err != nil {
 		panic(err)
 	}
 
+	printer := printers.NewSpacePrinter(true, 4)
+	formatter := formatters.NewDefaultFormatterWithParameters(printer, detectedParameters)
+
 	for i := range tree.Statements {
-		printNode(tree.Statements[i], false)
+		formatter.PrintNode(tree.Statements[i], false)
 	}
 
-	fmt.Println()
-
+	fmt.Println(printer)
 }
