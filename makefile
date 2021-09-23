@@ -7,6 +7,6 @@ build:
 	go build $(GOFLAGS) $(LDFLAGS) -o pgPretty *.go
 
 run:
-	go run ./...
+	go run *.go
 
 .PHONY:	build
