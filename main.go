@@ -1,7 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	"github.com/dbreedt/pgPretty/formatters"
 	helpers "github.com/dbreedt/pgPretty/helpers"
@@ -10,7 +13,18 @@ import (
 )
 
 func main() {
-	// TODO: Process parameters here
+	var (
+		fileName        string
+		useTabs         bool
+		capsKeywords    bool
+		numIndentations int
+	)
+	flag.StringVar(&fileName, "file", "", "name of the sql file you want formatted")
+	flag.BoolVar(&useTabs, "tabs", false, "use tabs instead of spaces (default is spaces)")
+	flag.BoolVar(&capsKeywords, "capsKw", false, "use upper case keywords (default is lower case)")
+	flag.IntVar(&numIndentations, "indents", 2, "how many tabs/spaces to use for a single indent (default 2)")
+
+	flag.Parse()
 
 	sql := `
 	with tab as (
@@ -47,6 +61,17 @@ func main() {
 		)
 	)	and x = ?Name
 `
+
+	if fileName != "" {
+		data, err := ioutil.ReadFile(fileName)
+		if err != nil {
+			fmt.Println("Failed to open file", fileName, err)
+			os.Exit(1)
+		}
+
+		sql = string(data)
+	}
+
 	// remove any illegal named parameters and store them for later processing
 	workingSQL, detectedParameters := helpers.ProcessNamedParameters(sql)
 
@@ -55,7 +80,7 @@ func main() {
 		panic(err)
 	}
 
-	printer := printers.NewSpacePrinter(true, 4)
+	printer := printers.NewBasePrinter(useTabs, capsKeywords, numIndentations)
 	formatter := formatters.NewDefaultFormatterWithParameters(printer, detectedParameters)
 
 	for i := range tree.Statements {
