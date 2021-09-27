@@ -12,17 +12,23 @@ type DefaultFormatter struct {
 	printer            interfaces.SqlPrinter
 	detectedParameters map[int]string
 	paramCounter       int
+	debug              bool
 }
 
 func NewDefaultFormatterWithParameters(printer interfaces.SqlPrinter, parameterLookup map[int]string) *DefaultFormatter {
 	return &DefaultFormatter{
 		printer:            printer,
 		detectedParameters: parameterLookup,
+		debug:              true,
 	}
 }
 
 func NewDefaultFormatter(printer interfaces.SqlPrinter) *DefaultFormatter {
 	return NewDefaultFormatterWithParameters(printer, nil)
+}
+
+func (df *DefaultFormatter) d() {
+	fmt.Println(df.printer)
 }
 
 func (df *DefaultFormatter) p(msg string) {
@@ -97,16 +103,17 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 			df.printer.IncIndent()
 			df.printNode(ss.FromClause.Items[i], true)
 		}
-
-		df.printer.NewLine()
 	}
 
 	df.printer.DecIndent()
-	df.printer.PrintKeyword("where")
-	df.printer.NewLine()
-	df.printer.IncIndent()
-	df.printNode(ss.WhereClause, true)
-	df.printer.DecIndent()
+	if ss.WhereClause != nil {
+		df.printer.NewLine()
+		df.printer.PrintKeyword("where")
+		df.printer.NewLine()
+		df.printer.IncIndent()
+		df.printNode(ss.WhereClause, true)
+		df.printer.DecIndent()
+	}
 }
 
 func (df *DefaultFormatter) PrintResTarget(nt nodes.ResTarget, withIndent bool) {
@@ -143,9 +150,6 @@ func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 		df.printer.PrintKeyword("from")
 		df.printer.NewLine()
 		df.printer.IncIndent()
-	} else {
-		df.printer.IncIndent()
-		df.PrintJoinType(join.Jointype, true)
 	}
 
 	if join.IsNatural {
@@ -158,23 +162,40 @@ func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 		df.printer.NewLine()
 		df.printer.DecIndent()
 		df.printer.PrintKeyword("cross join ")
-		df.printNode(join.Rarg, false)
+		df.printer.NewLine()
 		df.printer.IncIndent()
+		df.printNode(join.Rarg, true)
 	} else {
 		df.printNode(join.Larg, true)
 		df.printer.NewLine()
 		df.printer.DecIndent()
 		df.PrintJoinType(join.Jointype, true)
-		df.printNode(join.Rarg, false)
+
+		newLine := true
+
+		switch join.Rarg.(type) {
+		case nodes.RangeSubselect:
+			newLine = false
+		}
+
+		// Sub-select's manage their own newlines, due to lateral joins
+		if newLine {
+			df.printer.NewLine()
+			df.printer.IncIndent()
+		}
+
+		df.printNode(join.Rarg, true)
 
 		if len(join.UsingClause.Items) > 0 {
 			df.p("Join - Using Clause")
 		}
 
 		df.printer.NewLine()
-		df.printer.IncIndent()
 		df.printer.PrintKeyword("on ")
-		df.printNode(join.Quals, false)
+		df.printer.NewLine()
+		df.printer.IncIndent()
+		df.printNode(join.Quals, true)
+		df.printer.DecIndent()
 	}
 }
 
@@ -209,10 +230,10 @@ func (df *DefaultFormatter) PrintJoinType(joinType nodes.JoinType, withIndent bo
 		jt = "right join "
 
 	case nodes.JOIN_SEMI:
-		df.p("join type - semi")
+		jt = "exists"
 
 	case nodes.JOIN_ANTI:
-		df.p("join type - anti")
+		jt = "not exists"
 
 	case nodes.JOIN_UNIQUE_OUTER:
 		df.p("join type - unique outer")
@@ -459,6 +480,72 @@ func (df *DefaultFormatter) PrintParamRef(pr nodes.ParamRef, withIndent bool) {
 	}
 }
 
+func (df *DefaultFormatter) PrintSubSelect(ss nodes.RangeSubselect, withIndent bool) {
+	df.d()
+	if ss.Lateral {
+		df.printer.PrintKeywordNoIndent("lateral")
+	}
+	df.printer.NewLine()
+	df.printer.IncIndent()
+	df.printer.PrintString("(")
+	df.printer.NewLine()
+	df.printer.IncIndent()
+	df.printNode(ss.Subquery, withIndent)
+	df.printer.NewLine()
+	df.printer.DecIndent()
+	df.printer.PrintString(") ")
+	df.PrintAlias(ss.Alias)
+	df.d()
+}
+
+func (df *DefaultFormatter) PrintTypeCast(tc nodes.TypeCast) {
+	df.d()
+	df.printNode(tc.Arg, true)
+	if tc.TypeName != nil {
+		df.printer.PrintStringNoIndent("::")
+		df.PrintTypeName(*tc.TypeName)
+	}
+}
+
+func (df *DefaultFormatter) PrintTypeName(tn nodes.TypeName) {
+	df.d()
+	if len(tn.Names.Items) > 1 {
+		df.printNode(tn.Names.Items[1], false)
+	}
+}
+
+func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
+	df.d()
+	df.printNode(sl.Testexpr, withIndent)
+
+	switch sl.SubLinkType {
+	case nodes.EXISTS_SUBLINK,
+		nodes.ALL_SUBLINK,
+		nodes.ROWCOMPARE_SUBLINK,
+		nodes.EXPR_SUBLINK,
+		nodes.MULTIEXPR_SUBLINK,
+		nodes.ARRAY_SUBLINK:
+		df.p(fmt.Sprintf("Unsupported sublinktype: %+v", sl.SubLinkType))
+
+	case nodes.ANY_SUBLINK:
+		if len(sl.OperName.Items) == 0 {
+			df.printer.PrintKeywordNoIndent(" in")
+		} else {
+			df.printer.PrintStringNoIndent(" = ")
+			df.printer.PrintKeywordNoIndent("any")
+		}
+	}
+
+	df.printer.PrintStringNoIndent(" (")
+	df.printer.NewLine()
+	df.printer.IncIndent()
+	df.printNode(sl.Subselect, withIndent)
+	df.printer.NewLine()
+	df.printer.DecIndent()
+	df.printer.PrintString(")")
+	df.d()
+}
+
 // PrintNode This is the main entry point for the AST crawler
 func (df *DefaultFormatter) PrintNode(node nodes.Node) {
 	df.printNode(node, false)
@@ -538,12 +625,16 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 		df.PrintParamRef(node.(nodes.ParamRef), withIndent)
 
 	case nodes.RangeSubselect:
-		// join lateral (select * from x where y = t.id)
-		df.p("Node: Range Subselect")
+		df.PrintSubSelect(node.(nodes.RangeSubselect), withIndent)
 
 	case nodes.SubLink:
-		// and t.id in (select id from x where y)
-		df.p("Node: Sublink")
+		df.PrintSubLink(node.(nodes.SubLink), withIndent)
+
+	case nodes.Alias:
+		df.PrintAlias(node.(*nodes.Alias))
+
+	case nodes.TypeCast:
+		df.PrintTypeCast(node.(nodes.TypeCast))
 
 	default:
 		df.p(fmt.Sprintf("Node: %T", node))

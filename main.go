@@ -28,7 +28,7 @@ func main() {
 
 	sql := `
 	with tab as (
-		select shit
+		select stuff
 		from somewhere
 		where something = 42
 	), tab2 as (
@@ -42,8 +42,14 @@ func main() {
 	)
 	SELECT *, t.id
 	from tab t
-	join tab2 t2      on t2.id = t.tab_id
-	--join lateral (select * from tab8 where tab8_key = t.lame_key) t3 on true
+	join tab2 t2      on t2.id = t.tab_id and t2.id != 33
+	left join tab7 t7 on t7.id  = t2.id
+	right join tab44 t44 on t44.id = t2.id
+	left outer join tab8 t8 on t8.id = t2.id
+	right outer join tab444 t444 on t444.id = t2.id
+	full outer join tab777 t777 on t777.id = t2.id
+	left join (select id from x22w ) t99 on t99.id = t2.id
+	join lateral (select * from tab8 where tab8_key = t.lame_key) t3 on true
 	where not t.id and t.name like 'thing%'
 	and t.name = '24'
 	and t.num = 33
@@ -52,7 +58,7 @@ func main() {
 	and t.range between 20 and 2000
 	and t.range2 not between 20 and 300
 	and not t.bval
-	--and t.id in (select id from some_id_store where things = 'borked')
+	and t.id in (select id from some_id_store where things = 'borked')
 	and (
 		t.opt is not null
 		or (
@@ -60,6 +66,12 @@ func main() {
 			and t.not_opt
 		)
 	)	and x = ?Name
+	--and exists (
+	--	select from x222yy where id = t2.id
+	--)
+	--and not exists (
+	--	select from x23423z where id = t2.id
+	--)
 `
 
 	if fileName != "" {
