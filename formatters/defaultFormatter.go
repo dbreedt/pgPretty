@@ -32,6 +32,10 @@ func (df *DefaultFormatter) p(msg string) {
 	panic(msg + " not supported")
 }
 
+func (df *DefaultFormatter) String() string {
+	return df.printer.String()
+}
+
 func (df *DefaultFormatter) PrintWithClause(wc nodes.WithClause) {
 	if wc.Recursive {
 		df.p("With Clause - Recursive")
@@ -42,7 +46,7 @@ func (df *DefaultFormatter) PrintWithClause(wc nodes.WithClause) {
 			df.printer.PrintKeywordNoIndent("with ")
 		}
 
-		df.PrintNode(wc.Ctes.Items[i], false)
+		df.printNode(wc.Ctes.Items[i], false)
 
 		if i < len(wc.Ctes.Items)-1 {
 			df.printer.PrintString(", ")
@@ -64,7 +68,7 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 			df.printer.PrintKeywordNoIndent("distinct")
 			df.printer.NewLine()
 		} else {
-			df.PrintNode(ss.DistinctClause.Items[i], true)
+			df.printNode(ss.DistinctClause.Items[i], true)
 		}
 	}
 
@@ -73,7 +77,7 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 	}
 
 	for i := range ss.TargetList.Items {
-		df.PrintNode(ss.TargetList.Items[i], true)
+		df.printNode(ss.TargetList.Items[i], true)
 
 		if i < len(ss.TargetList.Items)-1 {
 			df.printer.PrintStringNoIndent(",")
@@ -91,7 +95,7 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 			df.printer.PrintKeyword("from")
 			df.printer.NewLine()
 			df.printer.IncIndent()
-			df.PrintNode(ss.FromClause.Items[i], true)
+			df.printNode(ss.FromClause.Items[i], true)
 		}
 
 		df.printer.NewLine()
@@ -101,7 +105,7 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 	df.printer.PrintKeyword("where")
 	df.printer.NewLine()
 	df.printer.IncIndent()
-	df.PrintNode(ss.WhereClause, true)
+	df.printNode(ss.WhereClause, true)
 	df.printer.DecIndent()
 }
 
@@ -113,17 +117,17 @@ func (df *DefaultFormatter) PrintResTarget(nt nodes.ResTarget, withIndent bool) 
 	}
 
 	for i := range nt.Indirection.Items {
-		df.PrintNode(nt.Indirection.Items[i], withIndent)
+		df.printNode(nt.Indirection.Items[i], withIndent)
 	}
 
-	df.PrintNode(nt.Val, withIndent)
+	df.printNode(nt.Val, withIndent)
 
 	df.printer.PrintStringNoIndent(retVal)
 }
 
 func (df *DefaultFormatter) PrintColumnRef(cr nodes.ColumnRef, withIndent bool) {
 	for i := range cr.Fields.Items {
-		df.PrintNode(cr.Fields.Items[i], withIndent)
+		df.printNode(cr.Fields.Items[i], withIndent)
 
 		if i < len(cr.Fields.Items)-1 {
 			df.printer.PrintStringNoIndent(".")
@@ -150,18 +154,18 @@ func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 
 	// cross join
 	if join.Jointype == nodes.JOIN_INNER && join.Quals == nil {
-		df.PrintNode(join.Larg, true)
+		df.printNode(join.Larg, true)
 		df.printer.NewLine()
 		df.printer.DecIndent()
 		df.printer.PrintKeyword("cross join ")
-		df.PrintNode(join.Rarg, false)
+		df.printNode(join.Rarg, false)
 		df.printer.IncIndent()
 	} else {
-		df.PrintNode(join.Larg, true)
+		df.printNode(join.Larg, true)
 		df.printer.NewLine()
 		df.printer.DecIndent()
 		df.PrintJoinType(join.Jointype, true)
-		df.PrintNode(join.Rarg, false)
+		df.printNode(join.Rarg, false)
 
 		if len(join.UsingClause.Items) > 0 {
 			df.p("Join - Using Clause")
@@ -170,7 +174,7 @@ func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 		df.printer.NewLine()
 		df.printer.IncIndent()
 		df.printer.PrintKeyword("on ")
-		df.PrintNode(join.Quals, false)
+		df.printNode(join.Quals, false)
 	}
 }
 
@@ -263,7 +267,7 @@ func (df *DefaultFormatter) PrintRangeVar(rv nodes.RangeVar, withIndent bool) {
 
 func (df *DefaultFormatter) PrintBoolExpr(be nodes.BoolExpr, prevOp nodes.BoolExprType, withIndent bool) {
 	if be.Xpr != nil {
-		df.PrintNode(be.Xpr, withIndent)
+		df.printNode(be.Xpr, withIndent)
 		df.printer.PrintStringNoIndent(" ")
 		df.PrintBoolExprType(be.Boolop, false)
 	}
@@ -291,7 +295,7 @@ func (df *DefaultFormatter) PrintBoolExpr(be nodes.BoolExpr, prevOp nodes.BoolEx
 			df.PrintBoolExpr(tbe, be.Boolop, withIndent)
 		} else {
 			// only print an indent if this is the first item and the operator is not a not
-			df.PrintNode(be.Args.Items[i], i == 0 && (int(be.Boolop) != 2))
+			df.printNode(be.Args.Items[i], i == 0 && (int(be.Boolop) != 2))
 		}
 
 		if i < len(be.Args.Items)-1 {
@@ -336,44 +340,44 @@ func (df *DefaultFormatter) PrintBoolExprType(exprType nodes.BoolExprType, withI
 }
 
 func (df *DefaultFormatter) PrintAExpr(ae nodes.A_Expr, withIndent bool) {
-	df.PrintNode(ae.Lexpr, withIndent)
+	df.printNode(ae.Lexpr, withIndent)
 
 	switch ae.Kind {
 	case nodes.AEXPR_OP_ANY:
 		df.PrintAExprKeywords(ae.Name)
 		df.printer.PrintKeywordNoIndent("any")
 		df.printer.PrintStringNoIndent("( ")
-		df.PrintNode(ae.Rexpr, false)
+		df.printNode(ae.Rexpr, false)
 		df.printer.PrintStringNoIndent(" )")
 
 	case nodes.AEXPR_OP_ALL:
 		df.PrintAExprKeywords(ae.Name)
 		df.printer.PrintKeywordNoIndent("all")
 		df.printer.PrintStringNoIndent("( ")
-		df.PrintNode(ae.Rexpr, false)
+		df.printNode(ae.Rexpr, false)
 		df.printer.PrintStringNoIndent(" )")
 
 	case nodes.AEXPR_BETWEEN,
 		nodes.AEXPR_NOT_BETWEEN:
 
 		df.PrintAExprKeywords(ae.Name)
-		df.PrintNode(ae.Rexpr.(nodes.List).Items[0], false)
+		df.printNode(ae.Rexpr.(nodes.List).Items[0], false)
 		df.printer.PrintKeywordNoIndent(" and ")
-		df.PrintNode(ae.Rexpr.(nodes.List).Items[1], false)
+		df.printNode(ae.Rexpr.(nodes.List).Items[1], false)
 
 	case nodes.AEXPR_LIKE:
 		df.printer.PrintKeywordNoIndent(" like ")
-		df.PrintNode(ae.Rexpr, false)
+		df.printNode(ae.Rexpr, false)
 
 	case nodes.AEXPR_ILIKE:
 		df.printer.PrintKeywordNoIndent(" ilike ")
-		df.PrintNode(ae.Rexpr, false)
+		df.printNode(ae.Rexpr, false)
 
 	case nodes.AEXPR_OP:
 		// Prints the operator
 		df.PrintAExprKeywords(ae.Name)
 
-		df.PrintNode(ae.Rexpr, false)
+		df.printNode(ae.Rexpr, false)
 
 	default:
 		df.p(fmt.Sprintf("AExpr: %v", ae.Kind))
@@ -391,10 +395,10 @@ func (df *DefaultFormatter) PrintAExprKeywords(op nodes.List) {
 
 func (df *DefaultFormatter) PrintNullTest(nt nodes.NullTest, withIndent bool) {
 	if nt.Xpr != nil {
-		df.PrintNode(nt.Xpr, withIndent)
+		df.printNode(nt.Xpr, withIndent)
 	}
 
-	df.PrintNode(nt.Arg, withIndent)
+	df.printNode(nt.Arg, withIndent)
 
 	if nt.Nulltesttype == nodes.IS_NULL {
 		df.printer.PrintKeywordNoIndent(" is null")
@@ -407,11 +411,11 @@ func (df *DefaultFormatter) PrintAConst(ac nodes.A_Const) {
 	switch ac.Val.(type) {
 	case nodes.String:
 		df.printer.PrintStringNoIndent("'")
-		df.PrintNode(ac.Val, false)
+		df.printNode(ac.Val, false)
 		df.printer.PrintStringNoIndent("'")
 
 	default:
-		df.PrintNode(ac.Val, false)
+		df.printNode(ac.Val, false)
 	}
 }
 
@@ -427,7 +431,7 @@ func (df *DefaultFormatter) PrintCommonTableExpr(cte nodes.CommonTableExpr) {
 		df.p("CTE - Recursive")
 	}
 
-	df.PrintNode(cte.Ctequery, false)
+	df.printNode(cte.Ctequery, false)
 
 	df.printer.NewLine()
 	df.printer.DecIndent()
@@ -455,10 +459,18 @@ func (df *DefaultFormatter) PrintParamRef(pr nodes.ParamRef, withIndent bool) {
 	}
 }
 
-func (df *DefaultFormatter) PrintNode(node nodes.Node, withIndent bool) {
+// PrintNode This is the main entry point for the AST crawler
+func (df *DefaultFormatter) PrintNode(node nodes.Node) {
+	df.printNode(node, false)
+}
+
+// printNode This is the main forking function that decides what to do with a node.
+//
+// Note: Other `node` printers call this function to print `node` objects, so this is a generic `node` printer
+func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 	switch node.(type) {
 	case nodes.RawStmt:
-		df.PrintNode(node.(nodes.RawStmt).Stmt, withIndent)
+		df.printNode(node.(nodes.RawStmt).Stmt, withIndent)
 
 	case nodes.SelectStmt:
 		df.PrintSelectStatement(node.(nodes.SelectStmt))

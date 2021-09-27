@@ -9,7 +9,7 @@ import (
 	"github.com/dbreedt/pgPretty/formatters"
 	helpers "github.com/dbreedt/pgPretty/helpers"
 	printers "github.com/dbreedt/pgPretty/printers"
-	pg_query "github.com/pganalyze/pg_query_go"
+	"github.com/dbreedt/pgPretty/processors"
 )
 
 func main() {
@@ -74,18 +74,14 @@ func main() {
 
 	// remove any illegal named parameters and store them for later processing
 	workingSQL, detectedParameters := helpers.ProcessNamedParameters(sql)
-
-	tree, err := pg_query.Parse(workingSQL)
-	if err != nil {
-		panic(err)
-	}
-
 	printer := printers.NewBasePrinter(useTabs, capsKeywords, numIndentations)
 	formatter := formatters.NewDefaultFormatterWithParameters(printer, detectedParameters)
 
-	for i := range tree.Statements {
-		formatter.PrintNode(tree.Statements[i], false)
+	prettySql, err := processors.ProcessSQL(workingSQL, formatter)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
-	fmt.Println(printer)
+	fmt.Println(prettySql)
 }
