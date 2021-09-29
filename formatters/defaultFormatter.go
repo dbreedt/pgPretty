@@ -532,8 +532,7 @@ func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 	df.d()
 
 	switch sl.SubLinkType {
-	case nodes.ALL_SUBLINK,
-		nodes.ROWCOMPARE_SUBLINK,
+	case nodes.ROWCOMPARE_SUBLINK,
 		nodes.EXPR_SUBLINK,
 		nodes.MULTIEXPR_SUBLINK,
 		nodes.ARRAY_SUBLINK:
@@ -545,12 +544,34 @@ func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 		if sl.Testexpr != nil {
 			df.printNode(sl.Testexpr, withIndent)
 		}
+
 		if len(sl.OperName.Items) == 0 {
-			df.printer.PrintKeywordNoIndent(" in")
+			df.printer.PrintStringNoIndent(" in")
 		} else {
-			df.printer.PrintStringNoIndent(" = ")
+			df.printer.PrintStringNoIndent(" ")
+
+			for _, opp := range sl.OperName.Items {
+				df.printNode(opp, false)
+			}
+
+			df.printer.PrintStringNoIndent(" ")
 			df.printer.PrintKeywordNoIndent("any")
 		}
+
+	case nodes.ALL_SUBLINK:
+
+		if sl.Testexpr != nil {
+			df.printNode(sl.Testexpr, withIndent)
+		}
+
+		df.printer.PrintStringNoIndent(" ")
+
+		for _, opp := range sl.OperName.Items {
+			df.printNode(opp, false)
+		}
+
+		df.printer.PrintStringNoIndent(" ")
+		df.printer.PrintKeywordNoIndent("all")
 
 	case nodes.EXISTS_SUBLINK:
 

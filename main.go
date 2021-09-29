@@ -59,6 +59,9 @@ func main() {
 	and t.range2 not between 20 and 300
 	and not t.bval
 	and t.id in (select id from some_id_store where things = 'borked')
+	and t.id not in (select id from some_id_store where things = 'borked22')
+	and t.id = any(select id from some_id_store where things = 'bbb')
+	and t.id4 = all(select id from some_id_store where things = 'bbb')
 	and (
 		t.opt is not null
 		or (
