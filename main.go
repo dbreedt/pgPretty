@@ -66,12 +66,12 @@ func main() {
 			and t.not_opt
 		)
 	)	and x = ?Name
-	--and exists (
-	--	select from x222yy where id = t2.id
-	--)
-	--and not exists (
-	--	select from x23423z where id = t2.id
-	--)
+	and exists (
+		select from x222yy where id = t2.id
+	)
+	and not exists (
+		select from x23423z where id = t2.id
+	)
 `
 
 	if fileName != "" {

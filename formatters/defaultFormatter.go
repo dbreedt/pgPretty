@@ -19,7 +19,7 @@ func NewDefaultFormatterWithParameters(printer interfaces.SqlPrinter, parameterL
 	return &DefaultFormatter{
 		printer:            printer,
 		detectedParameters: parameterLookup,
-		debug:              true,
+		debug:              false,
 	}
 }
 
@@ -28,6 +28,10 @@ func NewDefaultFormatter(printer interfaces.SqlPrinter) *DefaultFormatter {
 }
 
 func (df *DefaultFormatter) d() {
+	if !df.debug {
+		return
+	}
+
 	fmt.Println(df.printer)
 }
 
@@ -92,7 +96,11 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 	}
 
 	df.printer.DecIndent()
-	df.printer.NewLine()
+
+	// only drop a new line if we are selecting something
+	if len(ss.DistinctClause.Items) > 0 || len(ss.TargetList.Items) > 0 {
+		df.printer.NewLine()
+	}
 
 	for i := range ss.FromClause.Items {
 		if je, ok := ss.FromClause.Items[i].(nodes.JoinExpr); ok {
@@ -428,15 +436,21 @@ func (df *DefaultFormatter) PrintNullTest(nt nodes.NullTest, withIndent bool) {
 	}
 }
 
-func (df *DefaultFormatter) PrintAConst(ac nodes.A_Const) {
+func (df *DefaultFormatter) PrintAConst(ac nodes.A_Const, withindent bool) {
 	switch ac.Val.(type) {
 	case nodes.String:
-		df.printer.PrintStringNoIndent("'")
+
+		if withindent {
+			df.printer.PrintString("'")
+		} else {
+			df.printer.PrintStringNoIndent("'")
+		}
 		df.printNode(ac.Val, false)
 		df.printer.PrintStringNoIndent("'")
 
 	default:
-		df.printNode(ac.Val, false)
+
+		df.printNode(ac.Val, withindent)
 	}
 }
 
@@ -498,9 +512,9 @@ func (df *DefaultFormatter) PrintSubSelect(ss nodes.RangeSubselect, withIndent b
 	df.d()
 }
 
-func (df *DefaultFormatter) PrintTypeCast(tc nodes.TypeCast) {
+func (df *DefaultFormatter) PrintTypeCast(tc nodes.TypeCast, withIndent bool) {
 	df.d()
-	df.printNode(tc.Arg, true)
+	df.printNode(tc.Arg, withIndent)
 	if tc.TypeName != nil {
 		df.printer.PrintStringNoIndent("::")
 		df.PrintTypeName(*tc.TypeName)
@@ -516,24 +530,31 @@ func (df *DefaultFormatter) PrintTypeName(tn nodes.TypeName) {
 
 func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 	df.d()
-	df.printNode(sl.Testexpr, withIndent)
 
 	switch sl.SubLinkType {
-	case nodes.EXISTS_SUBLINK,
-		nodes.ALL_SUBLINK,
+	case nodes.ALL_SUBLINK,
 		nodes.ROWCOMPARE_SUBLINK,
 		nodes.EXPR_SUBLINK,
 		nodes.MULTIEXPR_SUBLINK,
 		nodes.ARRAY_SUBLINK:
+
 		df.p(fmt.Sprintf("Unsupported sublinktype: %+v", sl.SubLinkType))
 
 	case nodes.ANY_SUBLINK:
+
+		if sl.Testexpr != nil {
+			df.printNode(sl.Testexpr, withIndent)
+		}
 		if len(sl.OperName.Items) == 0 {
 			df.printer.PrintKeywordNoIndent(" in")
 		} else {
 			df.printer.PrintStringNoIndent(" = ")
 			df.printer.PrintKeywordNoIndent("any")
 		}
+
+	case nodes.EXISTS_SUBLINK:
+
+		df.printer.PrintKeywordNoIndent("exists")
 	}
 
 	df.printer.PrintStringNoIndent(" (")
@@ -594,7 +615,7 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 		df.PrintAExpr(node.(nodes.A_Expr), withIndent)
 
 	case nodes.A_Const:
-		df.PrintAConst(node.(nodes.A_Const))
+		df.PrintAConst(node.(nodes.A_Const), withIndent)
 
 	case nodes.Integer:
 		if withIndent {
@@ -634,7 +655,7 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 		df.PrintAlias(node.(*nodes.Alias))
 
 	case nodes.TypeCast:
-		df.PrintTypeCast(node.(nodes.TypeCast))
+		df.PrintTypeCast(node.(nodes.TypeCast), withIndent)
 
 	default:
 		df.p(fmt.Sprintf("Node: %T", node))
