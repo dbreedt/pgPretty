@@ -1,0 +1,1 @@
+select distinct a,b,c,d from tab7

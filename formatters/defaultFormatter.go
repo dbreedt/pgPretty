@@ -59,8 +59,10 @@ func (df *DefaultFormatter) PrintWithClause(wc nodes.WithClause) {
 		df.printNode(wc.Ctes.Items[i], false)
 
 		if i < len(wc.Ctes.Items)-1 {
-			df.printer.PrintString(", ")
+			df.printer.PrintStringNoIndent(",")
 		}
+
+		df.printer.NewLine()
 	}
 }
 
@@ -73,26 +75,30 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 	df.printer.NewLine()
 	df.printer.IncIndent()
 
+	printDistinct := false
+
 	for i := range ss.DistinctClause.Items {
 		if ss.DistinctClause.Items[i] == nil {
-			df.printer.PrintKeywordNoIndent("distinct")
-			df.printer.NewLine()
+			df.printer.PrintKeyword("distinct ")
+			printDistinct = true
 		} else {
-			df.printNode(ss.DistinctClause.Items[i], true)
+			df.printNode(ss.DistinctClause.Items[i], !printDistinct)
+			printDistinct = false
 		}
 	}
 
-	if ss.IntoClause != nil {
-		df.p("Select - Into clause")
-	}
-
 	for i := range ss.TargetList.Items {
-		df.printNode(ss.TargetList.Items[i], true)
+		df.printNode(ss.TargetList.Items[i], !printDistinct)
+		printDistinct = false
 
 		if i < len(ss.TargetList.Items)-1 {
 			df.printer.PrintStringNoIndent(",")
 			df.printer.NewLine()
 		}
+	}
+
+	if ss.IntoClause != nil {
+		df.p("Select - Into clause")
 	}
 
 	df.printer.DecIndent()
@@ -122,6 +128,15 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 		df.printNode(ss.WhereClause, true)
 		df.printer.DecIndent()
 	}
+
+	if ss.LimitCount != nil {
+		df.printer.NewLine()
+		df.printer.PrintKeyword("limit")
+		df.printer.NewLine()
+		df.printer.IncIndent()
+		df.printNode(ss.LimitCount, true)
+		df.printer.DecIndent()
+	}
 }
 
 func (df *DefaultFormatter) PrintResTarget(nt nodes.ResTarget, withIndent bool) {
@@ -142,14 +157,11 @@ func (df *DefaultFormatter) PrintResTarget(nt nodes.ResTarget, withIndent bool) 
 
 func (df *DefaultFormatter) PrintColumnRef(cr nodes.ColumnRef, withIndent bool) {
 	for i := range cr.Fields.Items {
-		df.printNode(cr.Fields.Items[i], withIndent)
+		df.printNode(cr.Fields.Items[i], withIndent && i == 0)
 
 		if i < len(cr.Fields.Items)-1 {
 			df.printer.PrintStringNoIndent(".")
 		}
-
-		// negate indentation on consecutive runs to stop tab.<space>col prints
-		withIndent = false
 	}
 }
 
@@ -169,7 +181,7 @@ func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 		df.printNode(join.Larg, true)
 		df.printer.NewLine()
 		df.printer.DecIndent()
-		df.printer.PrintKeyword("cross join ")
+		df.printer.PrintKeyword("cross join")
 		df.printer.NewLine()
 		df.printer.IncIndent()
 		df.printNode(join.Rarg, true)
@@ -199,7 +211,7 @@ func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 		}
 
 		df.printer.NewLine()
-		df.printer.PrintKeyword("on ")
+		df.printer.PrintKeyword("on")
 		df.printer.NewLine()
 		df.printer.IncIndent()
 		df.printNode(join.Quals, true)
@@ -226,16 +238,16 @@ func (df *DefaultFormatter) PrintJoinType(joinType nodes.JoinType, withIndent bo
 
 	switch joinType {
 	case nodes.JOIN_INNER:
-		jt = "join "
+		jt = "join"
 
 	case nodes.JOIN_LEFT:
-		jt = "left join "
+		jt = "left join"
 
 	case nodes.JOIN_FULL:
-		jt = "full join "
+		jt = "full join"
 
 	case nodes.JOIN_RIGHT:
-		jt = "right join "
+		jt = "right join"
 
 	case nodes.JOIN_SEMI:
 		jt = "exists"
@@ -457,7 +469,8 @@ func (df *DefaultFormatter) PrintAConst(ac nodes.A_Const, withindent bool) {
 func (df *DefaultFormatter) PrintCommonTableExpr(cte nodes.CommonTableExpr) {
 	if cte.Ctename != nil {
 		df.printer.PrintStringNoIndent(*cte.Ctename)
-		df.printer.PrintStringNoIndent(" (")
+		df.printer.PrintKeywordNoIndent(" as ")
+		df.printer.PrintStringNoIndent("(")
 		df.printer.NewLine()
 		df.printer.IncIndent()
 	}
@@ -471,7 +484,6 @@ func (df *DefaultFormatter) PrintCommonTableExpr(cte nodes.CommonTableExpr) {
 	df.printer.NewLine()
 	df.printer.DecIndent()
 	df.printer.PrintString(")")
-	df.printer.NewLine()
 }
 
 func (df *DefaultFormatter) PrintParamRef(pr nodes.ParamRef, withIndent bool) {
@@ -495,9 +507,8 @@ func (df *DefaultFormatter) PrintParamRef(pr nodes.ParamRef, withIndent bool) {
 }
 
 func (df *DefaultFormatter) PrintSubSelect(ss nodes.RangeSubselect, withIndent bool) {
-	df.d()
 	if ss.Lateral {
-		df.printer.PrintKeywordNoIndent("lateral")
+		df.printer.PrintKeywordNoIndent(" lateral")
 	}
 	df.printer.NewLine()
 	df.printer.IncIndent()
@@ -509,11 +520,41 @@ func (df *DefaultFormatter) PrintSubSelect(ss nodes.RangeSubselect, withIndent b
 	df.printer.DecIndent()
 	df.printer.PrintString(") ")
 	df.PrintAlias(ss.Alias)
-	df.d()
 }
 
 func (df *DefaultFormatter) PrintTypeCast(tc nodes.TypeCast, withIndent bool) {
-	df.d()
+	// all of this garbage is required to convert an optimized 't'::bool back to a true
+	// because only crazy people prefer the later.
+	isTrue := false
+	isAConst := false
+
+	switch tc.Arg.(type) {
+	case nodes.A_Const:
+		isAConst = true
+	}
+
+	if isAConst {
+		isString := false
+		ac := tc.Arg.(nodes.A_Const)
+		switch ac.Val.(type) {
+		case nodes.String:
+			isString = true
+		}
+
+		if isString && ac.Val.(nodes.String).Str == "t" {
+			isTrue = true
+		}
+	}
+
+	if isTrue {
+		if withIndent {
+			df.printer.PrintString("true")
+		} else {
+			df.printer.PrintStringNoIndent("true")
+		}
+		return
+	}
+
 	df.printNode(tc.Arg, withIndent)
 	if tc.TypeName != nil {
 		df.printer.PrintStringNoIndent("::")
@@ -522,15 +563,12 @@ func (df *DefaultFormatter) PrintTypeCast(tc nodes.TypeCast, withIndent bool) {
 }
 
 func (df *DefaultFormatter) PrintTypeName(tn nodes.TypeName) {
-	df.d()
 	if len(tn.Names.Items) > 1 {
 		df.printNode(tn.Names.Items[1], false)
 	}
 }
 
 func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
-	df.d()
-
 	switch sl.SubLinkType {
 	case nodes.ROWCOMPARE_SUBLINK,
 		nodes.EXPR_SUBLINK,
@@ -585,7 +623,6 @@ func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 	df.printer.NewLine()
 	df.printer.DecIndent()
 	df.printer.PrintString(")")
-	df.d()
 }
 
 // PrintNode This is the main entry point for the AST crawler
@@ -614,7 +651,11 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 		df.PrintColumnRef(node.(nodes.ColumnRef), withIndent)
 
 	case nodes.A_Star:
-		df.printer.PrintString("*")
+		if withIndent {
+			df.printer.PrintString("*")
+		} else {
+			df.printer.PrintStringNoIndent("*")
+		}
 
 	case nodes.String:
 		if withIndent {

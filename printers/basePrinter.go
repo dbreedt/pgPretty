@@ -53,7 +53,7 @@ func NewTabPrinter(keywordInCaps bool, numIndentations int) *BasePrinter {
 
 // NewDefaultTabPrinter Create a semi generic BasePrinter that uses spaces
 func NewDefaultTabPrinter() *BasePrinter {
-	return NewBasePrinter(true, false, 2)
+	return NewBasePrinter(true, false, 1)
 }
 
 func (bp *BasePrinter) makeIndent() string {

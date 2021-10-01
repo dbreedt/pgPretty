@@ -19,10 +19,10 @@ func main() {
 		capsKeywords    bool
 		numIndentations int
 	)
-	flag.StringVar(&fileName, "file", "", "name of the sql file you want formatted")
-	flag.BoolVar(&useTabs, "tabs", false, "use tabs instead of spaces (default is spaces)")
-	flag.BoolVar(&capsKeywords, "capsKw", false, "use upper case keywords (default is lower case)")
-	flag.IntVar(&numIndentations, "indents", 2, "how many tabs/spaces to use for a single indent (default 2)")
+	flag.StringVar(&fileName, "f", "", "name of the sql file you want formatted")
+	flag.BoolVar(&useTabs, "t", false, "use tabs instead of spaces (default is spaces)")
+	flag.BoolVar(&capsKeywords, "u", false, "use upper case keywords (default is lower case)")
+	flag.IntVar(&numIndentations, "i", 2, "how many tabs/spaces to use for a single indent (default 2)")
 
 	flag.Parse()
 

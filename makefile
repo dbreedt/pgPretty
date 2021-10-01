@@ -9,4 +9,11 @@ build:
 run:
 	go run *.go
 
-.PHONY:	build
+test:
+	cd test && go test
+
+cover:
+	go test -coverprofile /tmp/pgPretty.out -covermode=atomic -coverpkg github.com/dbreedt/pgPretty/... ./test/...
+	go tool cover -html=/tmp/pgPretty.out -o /tmp/cover.html && google-chrome /tmp/cover.html
+
+.PHONY:	build test cover
