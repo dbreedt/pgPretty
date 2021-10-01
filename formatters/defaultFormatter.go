@@ -112,10 +112,17 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 		if je, ok := ss.FromClause.Items[i].(nodes.JoinExpr); ok {
 			df.PrintJoin(i == 0, je)
 		} else {
-			df.printer.PrintKeyword("from")
+			if i == 0 {
+				df.printer.PrintKeyword("from")
+				df.printer.IncIndent()
+			}
+
 			df.printer.NewLine()
-			df.printer.IncIndent()
 			df.printNode(ss.FromClause.Items[i], true)
+
+			if i < len(ss.FromClause.Items)-1 {
+				df.printer.PrintStringNoIndent(",")
+			}
 		}
 	}
 
