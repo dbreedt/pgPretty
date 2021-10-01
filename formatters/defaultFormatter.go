@@ -136,6 +136,22 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 		df.printer.DecIndent()
 	}
 
+	if len(ss.SortClause.Items) > 0 {
+		df.printer.NewLine()
+		df.printer.PrintKeyword("order by")
+		df.printer.NewLine()
+		df.printer.IncIndent()
+
+		for i, item := range ss.SortClause.Items {
+			df.printNode(item, true)
+			if i < len(ss.SortClause.Items)-1 {
+				df.printer.PrintStringNoIndent(",")
+				df.printer.NewLine()
+			}
+		}
+		df.printer.DecIndent()
+	}
+
 	if ss.LimitCount != nil {
 		df.printer.NewLine()
 		df.printer.PrintKeyword("limit")
@@ -686,6 +702,16 @@ func (df *DefaultFormatter) PrintFuncCall(fc nodes.FuncCall, withIndent bool) {
 	df.printer.PrintStringNoIndent(")")
 }
 
+func (df *DefaultFormatter) PrintSortBy(sb nodes.SortBy, withIndent bool) {
+	df.printNode(sb.Node, withIndent)
+	if sb.SortbyDir == nodes.SORTBY_DESC {
+		df.printer.PrintKeywordNoIndent(" desc")
+	}
+	if sb.SortbyNulls == nodes.SORTBY_NULLS_LAST {
+		df.printer.PrintKeywordNoIndent("nulls last")
+	}
+}
+
 // PrintNode This is the main entry point for the AST crawler
 func (df *DefaultFormatter) PrintNode(node nodes.Node) {
 	df.printNode(node, false)
@@ -795,6 +821,9 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 
 	case nodes.FuncCall:
 		df.PrintFuncCall(node.(nodes.FuncCall), withIndent)
+
+	case nodes.SortBy:
+		df.PrintSortBy(node.(nodes.SortBy), withIndent)
 
 	default:
 		df.p(fmt.Sprintf("Node: %T", node))

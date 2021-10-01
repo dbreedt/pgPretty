@@ -44,6 +44,10 @@ type Keywords struct {
 	Null      string // not to sure about this move, null is value and not a keyword but people that write SELECT, FROM, etc expect NULL
 	In        string
 	Exists    string
+	Desc      string
+	Nulls     string
+	Last      string
+	Case      string
 }
 
 func NewKeywords(upper bool) Keywords {
