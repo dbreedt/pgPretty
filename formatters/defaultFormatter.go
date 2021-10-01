@@ -159,7 +159,9 @@ func (df *DefaultFormatter) PrintResTarget(nt nodes.ResTarget, withIndent bool) 
 
 	df.printNode(nt.Val, withIndent)
 
-	df.printer.PrintStringNoIndent(retVal)
+	if len(retVal) > 0 {
+		df.printer.PrintStringNoIndent(" " + retVal)
+	}
 }
 
 func (df *DefaultFormatter) PrintColumnRef(cr nodes.ColumnRef, withIndent bool) {
@@ -589,7 +591,6 @@ func (df *DefaultFormatter) PrintTypeName(tn nodes.TypeName) {
 func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 	switch sl.SubLinkType {
 	case nodes.ROWCOMPARE_SUBLINK,
-		nodes.EXPR_SUBLINK,
 		nodes.MULTIEXPR_SUBLINK,
 		nodes.ARRAY_SUBLINK:
 
@@ -631,7 +632,15 @@ func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 
 	case nodes.EXISTS_SUBLINK:
 
-		df.printer.PrintKeywordNoIndent("exists")
+		if withIndent {
+			df.printer.PrintKeyword("exists")
+		} else {
+			df.printer.PrintKeywordNoIndent("exists")
+		}
+
+	case nodes.EXPR_SUBLINK:
+
+		df.printer.PrintString("")
 	}
 
 	df.printer.PrintStringNoIndent("(")
