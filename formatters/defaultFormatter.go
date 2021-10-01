@@ -228,17 +228,22 @@ func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 	}
 }
 
-func (df *DefaultFormatter) PrintAlias(alias *nodes.Alias) {
-	if alias == nil {
-		return
-	}
-
+func (df *DefaultFormatter) PrintAlias(alias nodes.Alias) {
 	if alias.Aliasname != nil {
 		df.printer.PrintStringNoIndent(*(alias.Aliasname))
 	}
 
 	if len(alias.Colnames.Items) > 0 {
-		df.p("Alias - Columns")
+		df.printer.PrintStringNoIndent("(")
+
+		for i, col := range alias.Colnames.Items {
+			df.printNode(col, false)
+			if i < len(alias.Colnames.Items)-1 {
+				df.printer.PrintStringNoIndent(", ")
+			}
+		}
+
+		df.printer.PrintStringNoIndent(")")
 	}
 }
 
@@ -311,7 +316,7 @@ func (df *DefaultFormatter) PrintRangeVar(rv nodes.RangeVar, withIndent bool) {
 
 	if rv.Alias != nil {
 		df.printer.PrintStringNoIndent(" ")
-		df.PrintAlias(rv.Alias)
+		df.PrintAlias(*rv.Alias)
 	}
 }
 
@@ -539,7 +544,10 @@ func (df *DefaultFormatter) PrintSubSelect(ss nodes.RangeSubselect, withIndent b
 	df.printer.NewLine()
 	df.printer.DecIndent()
 	df.printer.PrintString(") ")
-	df.PrintAlias(ss.Alias)
+
+	if ss.Alias != nil {
+		df.PrintAlias(*ss.Alias)
+	}
 }
 
 func (df *DefaultFormatter) PrintTypeCast(tc nodes.TypeCast, withIndent bool) {
@@ -652,6 +660,32 @@ func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 	df.printer.PrintString(")")
 }
 
+func (df *DefaultFormatter) PrintRangeFunction(rf nodes.RangeFunction, withIndent bool) {
+	for _, f := range rf.Functions.Items {
+		df.printNode(f, withIndent)
+	}
+
+	if rf.Alias != nil {
+		df.printer.PrintStringNoIndent(" ")
+		df.printNode(*rf.Alias, false)
+	}
+}
+
+func (df *DefaultFormatter) PrintFuncCall(fc nodes.FuncCall, withIndent bool) {
+	for _, name := range fc.Funcname.Items {
+		df.printNode(name, withIndent)
+	}
+
+	df.printer.PrintStringNoIndent("(")
+	for i, arg := range fc.Args.Items {
+		df.printNode(arg, false)
+		if i < len(fc.Args.Items)-1 {
+			df.printer.PrintStringNoIndent(", ")
+		}
+	}
+	df.printer.PrintStringNoIndent(")")
+}
+
 // PrintNode This is the main entry point for the AST crawler
 func (df *DefaultFormatter) PrintNode(node nodes.Node) {
 	df.printNode(node, false)
@@ -741,10 +775,26 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 		df.PrintSubLink(node.(nodes.SubLink), withIndent)
 
 	case nodes.Alias:
-		df.PrintAlias(node.(*nodes.Alias))
+		if node != nil {
+			df.PrintAlias(node.(nodes.Alias))
+		}
 
 	case nodes.TypeCast:
 		df.PrintTypeCast(node.(nodes.TypeCast), withIndent)
+
+	case nodes.RangeFunction:
+		df.PrintRangeFunction(node.(nodes.RangeFunction), withIndent)
+
+	case nodes.List:
+		list := node.(nodes.List)
+		for _, item := range list.Items {
+			if item != nil {
+				df.printNode(item, withIndent)
+			}
+		}
+
+	case nodes.FuncCall:
+		df.PrintFuncCall(node.(nodes.FuncCall), withIndent)
 
 	default:
 		df.p(fmt.Sprintf("Node: %T", node))
