@@ -16,7 +16,7 @@ import (
 
 const (
 	baseDir = "./sql/defaultFormatter/"
-	filter  = ""
+	filter  = "" // for debugging purposes: add the name of the sql file you want to test to avoid all the others from being tested
 )
 
 func TestSqlFiles(t *testing.T) {

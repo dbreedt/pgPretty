@@ -340,7 +340,7 @@ func (df *DefaultFormatter) PrintBoolExpr(be nodes.BoolExpr, prevOp nodes.BoolEx
 		}
 
 		if tbe, ok := be.Args.Items[i].(nodes.BoolExpr); ok {
-			df.PrintBoolExpr(tbe, be.Boolop, withIndent)
+			df.PrintBoolExpr(tbe, be.Boolop, withIndent || i == 0)
 		} else {
 			// only print an indent if this is the first item and the operator is not a not
 			df.printNode(be.Args.Items[i], i == 0 && (int(be.Boolop) != 2))
@@ -364,7 +364,6 @@ func (df *DefaultFormatter) PrintBoolExpr(be nodes.BoolExpr, prevOp nodes.BoolEx
 
 func (df *DefaultFormatter) PrintBoolExprType(exprType nodes.BoolExprType, withIndent bool) {
 	kw := ""
-
 	switch exprType {
 	case nodes.AND_EXPR:
 		kw = "and "
@@ -388,27 +387,29 @@ func (df *DefaultFormatter) PrintBoolExprType(exprType nodes.BoolExprType, withI
 }
 
 func (df *DefaultFormatter) PrintAExpr(ae nodes.A_Expr, withIndent bool) {
-	df.printNode(ae.Lexpr, withIndent)
+	if ae.Lexpr != nil {
+		df.printNode(ae.Lexpr, withIndent)
+	}
 
 	switch ae.Kind {
 	case nodes.AEXPR_OP_ANY:
-		df.PrintAExprKeywords(ae.Name)
+		df.PrintAExprKeywords(ae.Name, true)
 		df.printer.PrintKeywordNoIndent("any")
-		df.printer.PrintStringNoIndent("( ")
+		df.printer.PrintStringNoIndent("(")
 		df.printNode(ae.Rexpr, false)
-		df.printer.PrintStringNoIndent(" )")
+		df.printer.PrintStringNoIndent(")")
 
 	case nodes.AEXPR_OP_ALL:
-		df.PrintAExprKeywords(ae.Name)
+		df.PrintAExprKeywords(ae.Name, true)
 		df.printer.PrintKeywordNoIndent("all")
-		df.printer.PrintStringNoIndent("( ")
+		df.printer.PrintStringNoIndent("(")
 		df.printNode(ae.Rexpr, false)
-		df.printer.PrintStringNoIndent(" )")
+		df.printer.PrintStringNoIndent(")")
 
 	case nodes.AEXPR_BETWEEN,
 		nodes.AEXPR_NOT_BETWEEN:
 
-		df.PrintAExprKeywords(ae.Name)
+		df.PrintAExprKeywords(ae.Name, true)
 		df.printNode(ae.Rexpr.(nodes.List).Items[0], false)
 		df.printer.PrintKeywordNoIndent(" and ")
 		df.printNode(ae.Rexpr.(nodes.List).Items[1], false)
@@ -422,8 +423,12 @@ func (df *DefaultFormatter) PrintAExpr(ae nodes.A_Expr, withIndent bool) {
 		df.printNode(ae.Rexpr, false)
 
 	case nodes.AEXPR_OP:
+		if ae.Lexpr == nil {
+			// we need an indent, that Lexpr gives
+			df.printer.PrintString("")
+		}
 		// Prints the operator
-		df.PrintAExprKeywords(ae.Name)
+		df.PrintAExprKeywords(ae.Name, ae.Lexpr != nil)
 
 		df.printNode(ae.Rexpr, false)
 
@@ -432,12 +437,18 @@ func (df *DefaultFormatter) PrintAExpr(ae nodes.A_Expr, withIndent bool) {
 	}
 }
 
-func (df *DefaultFormatter) PrintAExprKeywords(op nodes.List) {
+func (df *DefaultFormatter) PrintAExprKeywords(op nodes.List, spaces bool) {
 	for i := range op.Items {
 		// These are keywords
-		df.printer.PrintStringNoIndent(" ")
+		if spaces {
+			df.printer.PrintStringNoIndent(" ")
+		}
+
 		df.printer.PrintKeywordNoIndent(op.Items[i].(nodes.String).Str)
-		df.printer.PrintStringNoIndent(" ")
+
+		if spaces {
+			df.printer.PrintStringNoIndent(" ")
+		}
 	}
 }
 
