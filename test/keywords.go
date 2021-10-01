@@ -22,7 +22,7 @@ type Keywords struct {
 	Distinct  string
 	Lateral   string
 	Left      string
-	Righer    string
+	Right     string
 	Outer     string
 	Count     string
 	Over      string
@@ -34,6 +34,7 @@ type Keywords struct {
 	Any       string
 	All       string
 	Cross     string
+	Full      string
 }
 
 func NewKeywords(upper bool) Keywords {
