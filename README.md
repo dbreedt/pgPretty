@@ -33,7 +33,7 @@ make cover
 ```
 
 ### Tests
-The test uses input files from `./sql/input` runs the content through a formatter and then compares the output from the formatter with that of the file with the same name in `./sql/output`.
+The test uses input files from `./sql/defaultFormatter/input` runs the content through a formatter and then compares the output from the formatter with that of the file with the same name in `./sql/defaultFormatter/output`.
 
 The output files use `text/template` syntax to reduce the amount of output files that need to be created when testing different formatting rules (spaces, tabs, upper case keywords, etc.)
 

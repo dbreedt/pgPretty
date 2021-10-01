@@ -602,7 +602,7 @@ func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 		}
 
 		if len(sl.OperName.Items) == 0 {
-			df.printer.PrintStringNoIndent(" in")
+			df.printer.PrintKeywordNoIndent(" in")
 		} else {
 			df.printer.PrintStringNoIndent(" ")
 
@@ -634,7 +634,7 @@ func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 		df.printer.PrintKeywordNoIndent("exists")
 	}
 
-	df.printer.PrintStringNoIndent(" (")
+	df.printer.PrintStringNoIndent("(")
 	df.printer.NewLine()
 	df.printer.IncIndent()
 	df.printNode(sl.Subselect, withIndent)
