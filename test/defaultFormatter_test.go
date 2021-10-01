@@ -62,6 +62,12 @@ func TestSqlFiles(t *testing.T) {
 			t.Fail()
 		}
 
+		// Run the expected sql through the postgres parser to ensure it is valid sql
+		_, err = processors.ProcessSQL(sqlExp, dfSpace)
+		if err != nil {
+			t.Fatal(file.Name(), "EXPECTED SQL IS INVALID", err)
+		}
+
 		tabPrinter := printers.NewBasePrinter(true, false, 1)
 		dfTab := formatters.NewDefaultFormatter(tabPrinter)
 
