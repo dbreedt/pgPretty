@@ -116,5 +116,8 @@ Some items of work still remain
 * add support for missing sql syntax
   * aggregates
   * window functions
+  * case statements
+  * update statements
+  * delete statements
   * etc.
 * other formatters
