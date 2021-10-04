@@ -1,19 +1,13 @@
 package interfaces
 
 type SqlPrinter interface {
-	AutoIndentAndPrintString(val string)
-	PrintString(val string)
-	PrintStringNoIndent(val string)
-	PrintInt(val int)
-	PrintInt64(val int64)
-	PrintFloat64(val float64)
-	PrintIntNoIndent(val int)
-	PrintInt64NoIndent(val int64)
-	PrintFloat64NoIndent(val float64)
+	PrintString(val string, withIndent ...bool)
+	PrintInt(val int, withIndent ...bool)
+	PrintInt64(val int64, withIndent ...bool)
+	PrintFloat64(val float64, withIndent ...bool)
+	PrintKeyword(keyword string, withIndent ...bool)
 	IncIndent()
 	DecIndent()
-	PrintKeywordNoIndent(keyword string)
-	PrintKeyword(keyword string)
 	NewLine()
 	String() string
 }

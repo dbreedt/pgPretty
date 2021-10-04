@@ -53,33 +53,25 @@ func (df *DefaultFormatter) PrintWithClause(wc nodes.WithClause) {
 
 	for i := range wc.Ctes.Items {
 		if i == 0 {
-			df.printer.PrintKeywordNoIndent("with ")
+			df.printer.PrintKeyword("with ")
 		}
 
 		df.printNode(wc.Ctes.Items[i], false)
 
 		if i < len(wc.Ctes.Items)-1 {
-			df.printer.PrintStringNoIndent(",")
+			df.printer.PrintString(",")
 		}
 
 		df.printer.NewLine()
 	}
 }
 
-func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
-	if ss.WithClause != nil {
-		df.PrintWithClause(*ss.WithClause)
-	}
-
-	df.printer.PrintKeyword("select")
-	df.printer.NewLine()
-	df.printer.IncIndent()
-
+func (df *DefaultFormatter) PrintSelectStatementTargets(ss nodes.SelectStmt) {
 	printDistinct := false
 
 	for i := range ss.DistinctClause.Items {
 		if ss.DistinctClause.Items[i] == nil {
-			df.printer.PrintKeyword("distinct ")
+			df.printer.PrintKeyword("distinct ", true)
 			printDistinct = true
 		} else {
 			df.printNode(ss.DistinctClause.Items[i], !printDistinct)
@@ -92,7 +84,7 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 		printDistinct = false
 
 		if i < len(ss.TargetList.Items)-1 {
-			df.printer.PrintStringNoIndent(",")
+			df.printer.PrintString(",")
 			df.printer.NewLine()
 		}
 	}
@@ -107,13 +99,15 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 	if len(ss.DistinctClause.Items) > 0 || len(ss.TargetList.Items) > 0 {
 		df.printer.NewLine()
 	}
+}
 
+func (df *DefaultFormatter) PrintSelectStatementFromClause(ss nodes.SelectStmt) {
 	for i := range ss.FromClause.Items {
 		if je, ok := ss.FromClause.Items[i].(nodes.JoinExpr); ok {
 			df.PrintJoin(i == 0, je)
 		} else {
 			if i == 0 {
-				df.printer.PrintKeyword("from")
+				df.printer.PrintKeyword("from", true)
 				df.printer.IncIndent()
 			}
 
@@ -121,45 +115,75 @@ func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
 			df.printNode(ss.FromClause.Items[i], true)
 
 			if i < len(ss.FromClause.Items)-1 {
-				df.printer.PrintStringNoIndent(",")
+				df.printer.PrintString(",")
 			}
 		}
 	}
+}
 
+func (df *DefaultFormatter) PrintSelectStatementWhereClause(ss nodes.SelectStmt) {
 	df.printer.DecIndent()
 	if ss.WhereClause != nil {
 		df.printer.NewLine()
-		df.printer.PrintKeyword("where")
+		df.printer.PrintKeyword("where", true)
 		df.printer.NewLine()
 		df.printer.IncIndent()
 		df.printNode(ss.WhereClause, true)
 		df.printer.DecIndent()
 	}
+}
 
+func (df *DefaultFormatter) PrintSelectStatementSortClause(ss nodes.SelectStmt) {
 	if len(ss.SortClause.Items) > 0 {
 		df.printer.NewLine()
-		df.printer.PrintKeyword("order by")
+		df.printer.PrintKeyword("order by", true)
 		df.printer.NewLine()
 		df.printer.IncIndent()
 
 		for i, item := range ss.SortClause.Items {
 			df.printNode(item, true)
 			if i < len(ss.SortClause.Items)-1 {
-				df.printer.PrintStringNoIndent(",")
+				df.printer.PrintString(",")
 				df.printer.NewLine()
 			}
 		}
 		df.printer.DecIndent()
 	}
+}
 
+func (df *DefaultFormatter) PrintSelectStatementLimitClause(ss nodes.SelectStmt) {
 	if ss.LimitCount != nil {
 		df.printer.NewLine()
-		df.printer.PrintKeyword("limit")
+		df.printer.PrintKeyword("limit", true)
 		df.printer.NewLine()
 		df.printer.IncIndent()
 		df.printNode(ss.LimitCount, true)
 		df.printer.DecIndent()
 	}
+}
+
+func (df *DefaultFormatter) PrintSelectStatementGroupByClause(ss nodes.SelectStmt) {
+}
+
+func (df *DefaultFormatter) PrintSelectStatementHavingClause(ss nodes.SelectStmt) {
+}
+
+func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
+	if ss.WithClause != nil {
+		df.PrintWithClause(*ss.WithClause)
+	}
+
+	df.printer.PrintKeyword("select", true)
+	df.printer.NewLine()
+	df.printer.IncIndent()
+
+	df.PrintSelectStatementTargets(ss)
+	df.PrintSelectStatementFromClause(ss)
+	df.PrintSelectStatementWhereClause(ss)
+	df.PrintSelectStatementGroupByClause(ss)
+	df.PrintSelectStatementHavingClause(ss)
+	df.PrintSelectStatementSortClause(ss)
+	df.PrintSelectStatementLimitClause(ss)
 }
 
 func (df *DefaultFormatter) PrintResTarget(nt nodes.ResTarget, withIndent bool) {
@@ -176,7 +200,7 @@ func (df *DefaultFormatter) PrintResTarget(nt nodes.ResTarget, withIndent bool) 
 	df.printNode(nt.Val, withIndent)
 
 	if len(retVal) > 0 {
-		df.printer.PrintStringNoIndent(" " + retVal)
+		df.printer.PrintString(" " + retVal)
 	}
 }
 
@@ -185,14 +209,14 @@ func (df *DefaultFormatter) PrintColumnRef(cr nodes.ColumnRef, withIndent bool) 
 		df.printNode(cr.Fields.Items[i], withIndent && i == 0)
 
 		if i < len(cr.Fields.Items)-1 {
-			df.printer.PrintStringNoIndent(".")
+			df.printer.PrintString(".")
 		}
 	}
 }
 
 func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 	if first {
-		df.printer.PrintKeyword("from")
+		df.printer.PrintKeyword("from", true)
 		df.printer.NewLine()
 		df.printer.IncIndent()
 	}
@@ -206,7 +230,7 @@ func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 		df.printNode(join.Larg, true)
 		df.printer.NewLine()
 		df.printer.DecIndent()
-		df.printer.PrintKeyword("cross join")
+		df.printer.PrintKeyword("cross join", true)
 		df.printer.NewLine()
 		df.printer.IncIndent()
 		df.printNode(join.Rarg, true)
@@ -236,7 +260,7 @@ func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 		}
 
 		df.printer.NewLine()
-		df.printer.PrintKeyword("on")
+		df.printer.PrintKeyword("on", true)
 		df.printer.NewLine()
 		df.printer.IncIndent()
 		df.printNode(join.Quals, true)
@@ -246,20 +270,20 @@ func (df *DefaultFormatter) PrintJoin(first bool, join nodes.JoinExpr) {
 
 func (df *DefaultFormatter) PrintAlias(alias nodes.Alias) {
 	if alias.Aliasname != nil {
-		df.printer.PrintStringNoIndent(*(alias.Aliasname))
+		df.printer.PrintString(*(alias.Aliasname))
 	}
 
 	if len(alias.Colnames.Items) > 0 {
-		df.printer.PrintStringNoIndent("(")
+		df.printer.PrintString("(")
 
 		for i, col := range alias.Colnames.Items {
 			df.printNode(col, false)
 			if i < len(alias.Colnames.Items)-1 {
-				df.printer.PrintStringNoIndent(", ")
+				df.printer.PrintString(", ")
 			}
 		}
 
-		df.printer.PrintStringNoIndent(")")
+		df.printer.PrintString(")")
 	}
 }
 
@@ -293,11 +317,7 @@ func (df *DefaultFormatter) PrintJoinType(joinType nodes.JoinType, withIndent bo
 	}
 
 	if len(jt) > 0 {
-		if withIndent {
-			df.printer.PrintKeyword(jt)
-		} else {
-			df.printer.PrintKeywordNoIndent(jt)
-		}
+		df.printer.PrintKeyword(jt, withIndent)
 	}
 }
 
@@ -324,14 +344,10 @@ func (df *DefaultFormatter) PrintRangeVar(rv nodes.RangeVar, withIndent bool) {
 		name += *rv.Relname
 	}
 
-	if withIndent {
-		df.printer.PrintString(name)
-	} else {
-		df.printer.PrintStringNoIndent(name)
-	}
+	df.printer.PrintString(name, withIndent)
 
 	if rv.Alias != nil {
-		df.printer.PrintStringNoIndent(" ")
+		df.printer.PrintString(" ")
 		df.PrintAlias(*rv.Alias)
 	}
 }
@@ -339,7 +355,7 @@ func (df *DefaultFormatter) PrintRangeVar(rv nodes.RangeVar, withIndent bool) {
 func (df *DefaultFormatter) PrintBoolExpr(be nodes.BoolExpr, prevOp nodes.BoolExprType, withIndent bool) {
 	if be.Xpr != nil {
 		df.printNode(be.Xpr, withIndent)
-		df.printer.PrintStringNoIndent(" ")
+		df.printer.PrintString(" ")
 		df.PrintBoolExprType(be.Boolop, false)
 	}
 
@@ -347,11 +363,7 @@ func (df *DefaultFormatter) PrintBoolExpr(be nodes.BoolExpr, prevOp nodes.BoolEx
 	parentheses := be.Boolop != prevOp && be.Boolop != 2
 
 	if parentheses {
-		if withIndent {
-			df.printer.PrintString("(")
-		} else {
-			df.printer.PrintStringNoIndent("(")
-		}
+		df.printer.PrintString("(", withIndent)
 
 		df.printer.NewLine()
 		df.printer.IncIndent()
@@ -381,7 +393,7 @@ func (df *DefaultFormatter) PrintBoolExpr(be nodes.BoolExpr, prevOp nodes.BoolEx
 	if parentheses {
 		df.printer.NewLine()
 		df.printer.DecIndent()
-		df.printer.PrintString(")")
+		df.printer.PrintString(")", true)
 	}
 }
 
@@ -401,11 +413,7 @@ func (df *DefaultFormatter) PrintBoolExprType(exprType nodes.BoolExprType, withI
 	}
 
 	if len(kw) > 0 {
-		if withIndent {
-			df.printer.PrintKeyword(kw)
-		} else {
-			df.printer.PrintKeywordNoIndent(kw)
-		}
+		df.printer.PrintKeyword(kw, withIndent)
 	}
 }
 
@@ -417,38 +425,38 @@ func (df *DefaultFormatter) PrintAExpr(ae nodes.A_Expr, withIndent bool) {
 	switch ae.Kind {
 	case nodes.AEXPR_OP_ANY:
 		df.PrintAExprKeywords(ae.Name, true)
-		df.printer.PrintKeywordNoIndent("any")
-		df.printer.PrintStringNoIndent("(")
+		df.printer.PrintKeyword("any")
+		df.printer.PrintString("(")
 		df.printNode(ae.Rexpr, false)
-		df.printer.PrintStringNoIndent(")")
+		df.printer.PrintString(")")
 
 	case nodes.AEXPR_OP_ALL:
 		df.PrintAExprKeywords(ae.Name, true)
-		df.printer.PrintKeywordNoIndent("all")
-		df.printer.PrintStringNoIndent("(")
+		df.printer.PrintKeyword("all")
+		df.printer.PrintString("(")
 		df.printNode(ae.Rexpr, false)
-		df.printer.PrintStringNoIndent(")")
+		df.printer.PrintString(")")
 
 	case nodes.AEXPR_BETWEEN,
 		nodes.AEXPR_NOT_BETWEEN:
 
 		df.PrintAExprKeywords(ae.Name, true)
 		df.printNode(ae.Rexpr.(nodes.List).Items[0], false)
-		df.printer.PrintKeywordNoIndent(" and ")
+		df.printer.PrintKeyword(" and ")
 		df.printNode(ae.Rexpr.(nodes.List).Items[1], false)
 
 	case nodes.AEXPR_LIKE:
-		df.printer.PrintKeywordNoIndent(" like ")
+		df.printer.PrintKeyword(" like ")
 		df.printNode(ae.Rexpr, false)
 
 	case nodes.AEXPR_ILIKE:
-		df.printer.PrintKeywordNoIndent(" ilike ")
+		df.printer.PrintKeyword(" ilike ")
 		df.printNode(ae.Rexpr, false)
 
 	case nodes.AEXPR_OP:
 		if ae.Lexpr == nil {
 			// we need an indent, that Lexpr gives
-			df.printer.PrintString("")
+			df.printer.PrintString("", true)
 		}
 		// Prints the operator
 		df.PrintAExprKeywords(ae.Name, ae.Lexpr != nil)
@@ -464,13 +472,13 @@ func (df *DefaultFormatter) PrintAExprKeywords(op nodes.List, spaces bool) {
 	for i := range op.Items {
 		// These are keywords
 		if spaces {
-			df.printer.PrintStringNoIndent(" ")
+			df.printer.PrintString(" ")
 		}
 
-		df.printer.PrintKeywordNoIndent(op.Items[i].(nodes.String).Str)
+		df.printer.PrintKeyword(op.Items[i].(nodes.String).Str)
 
 		if spaces {
-			df.printer.PrintStringNoIndent(" ")
+			df.printer.PrintString(" ")
 		}
 	}
 }
@@ -483,9 +491,9 @@ func (df *DefaultFormatter) PrintNullTest(nt nodes.NullTest, withIndent bool) {
 	df.printNode(nt.Arg, withIndent)
 
 	if nt.Nulltesttype == nodes.IS_NULL {
-		df.printer.PrintKeywordNoIndent(" is null")
+		df.printer.PrintKeyword(" is null")
 	} else {
-		df.printer.PrintKeywordNoIndent(" is not null")
+		df.printer.PrintKeyword(" is not null")
 	}
 }
 
@@ -493,13 +501,9 @@ func (df *DefaultFormatter) PrintAConst(ac nodes.A_Const, withindent bool) {
 	switch ac.Val.(type) {
 	case nodes.String:
 
-		if withindent {
-			df.printer.PrintString("'")
-		} else {
-			df.printer.PrintStringNoIndent("'")
-		}
+		df.printer.PrintString("'", withindent)
 		df.printNode(ac.Val, false)
-		df.printer.PrintStringNoIndent("'")
+		df.printer.PrintString("'")
 
 	default:
 
@@ -509,9 +513,9 @@ func (df *DefaultFormatter) PrintAConst(ac nodes.A_Const, withindent bool) {
 
 func (df *DefaultFormatter) PrintCommonTableExpr(cte nodes.CommonTableExpr) {
 	if cte.Ctename != nil {
-		df.printer.PrintStringNoIndent(*cte.Ctename)
-		df.printer.PrintKeywordNoIndent(" as ")
-		df.printer.PrintStringNoIndent("(")
+		df.printer.PrintString(*cte.Ctename)
+		df.printer.PrintKeyword(" as ")
+		df.printer.PrintString("(")
 		df.printer.NewLine()
 		df.printer.IncIndent()
 	}
@@ -524,42 +528,34 @@ func (df *DefaultFormatter) PrintCommonTableExpr(cte nodes.CommonTableExpr) {
 
 	df.printer.NewLine()
 	df.printer.DecIndent()
-	df.printer.PrintString(")")
+	df.printer.PrintString(")", true)
 }
 
 func (df *DefaultFormatter) PrintParamRef(pr nodes.ParamRef, withIndent bool) {
 	if df.detectedParameters != nil {
 		if param, ok := df.detectedParameters[df.paramCounter]; ok {
-			if withIndent {
-				df.printer.PrintString(param)
-			} else {
-				df.printer.PrintStringNoIndent(param)
-			}
+			df.printer.PrintString(param, withIndent)
 			df.paramCounter++
 			return
 		}
 	}
 
-	if withIndent {
-		df.printer.PrintString("?")
-	} else {
-		df.printer.PrintStringNoIndent("?")
-	}
+	df.printer.PrintString("?", withIndent)
 }
 
 func (df *DefaultFormatter) PrintSubSelect(ss nodes.RangeSubselect, withIndent bool) {
 	if ss.Lateral {
-		df.printer.PrintKeywordNoIndent(" lateral")
+		df.printer.PrintKeyword(" lateral")
 	}
 	df.printer.NewLine()
 	df.printer.IncIndent()
-	df.printer.PrintString("(")
+	df.printer.PrintString("(", true)
 	df.printer.NewLine()
 	df.printer.IncIndent()
 	df.printNode(ss.Subquery, withIndent)
 	df.printer.NewLine()
 	df.printer.DecIndent()
-	df.printer.PrintString(") ")
+	df.printer.PrintString(") ", true)
 
 	if ss.Alias != nil {
 		df.PrintAlias(*ss.Alias)
@@ -591,17 +587,13 @@ func (df *DefaultFormatter) PrintTypeCast(tc nodes.TypeCast, withIndent bool) {
 	}
 
 	if isTrue {
-		if withIndent {
-			df.printer.PrintString("true")
-		} else {
-			df.printer.PrintStringNoIndent("true")
-		}
+		df.printer.PrintString("true", withIndent)
 		return
 	}
 
 	df.printNode(tc.Arg, withIndent)
 	if tc.TypeName != nil {
-		df.printer.PrintStringNoIndent("::")
+		df.printer.PrintString("::")
 		df.PrintTypeName(*tc.TypeName)
 	}
 }
@@ -627,16 +619,16 @@ func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 		}
 
 		if len(sl.OperName.Items) == 0 {
-			df.printer.PrintKeywordNoIndent(" in")
+			df.printer.PrintKeyword(" in")
 		} else {
-			df.printer.PrintStringNoIndent(" ")
+			df.printer.PrintString(" ")
 
 			for _, opp := range sl.OperName.Items {
 				df.printNode(opp, false)
 			}
 
-			df.printer.PrintStringNoIndent(" ")
-			df.printer.PrintKeywordNoIndent("any")
+			df.printer.PrintString(" ")
+			df.printer.PrintKeyword("any")
 		}
 
 	case nodes.ALL_SUBLINK:
@@ -645,35 +637,31 @@ func (df *DefaultFormatter) PrintSubLink(sl nodes.SubLink, withIndent bool) {
 			df.printNode(sl.Testexpr, withIndent)
 		}
 
-		df.printer.PrintStringNoIndent(" ")
+		df.printer.PrintString(" ")
 
 		for _, opp := range sl.OperName.Items {
 			df.printNode(opp, false)
 		}
 
-		df.printer.PrintStringNoIndent(" ")
-		df.printer.PrintKeywordNoIndent("all")
+		df.printer.PrintString(" ")
+		df.printer.PrintKeyword("all")
 
 	case nodes.EXISTS_SUBLINK:
 
-		if withIndent {
-			df.printer.PrintKeyword("exists")
-		} else {
-			df.printer.PrintKeywordNoIndent("exists")
-		}
+		df.printer.PrintKeyword("exists", withIndent)
 
 	case nodes.EXPR_SUBLINK:
 
-		df.printer.PrintString("")
+		df.printer.PrintString("", true)
 	}
 
-	df.printer.PrintStringNoIndent("(")
+	df.printer.PrintString("(")
 	df.printer.NewLine()
 	df.printer.IncIndent()
 	df.printNode(sl.Subselect, withIndent)
 	df.printer.NewLine()
 	df.printer.DecIndent()
-	df.printer.PrintString(")")
+	df.printer.PrintString(")", true)
 }
 
 func (df *DefaultFormatter) PrintRangeFunction(rf nodes.RangeFunction, withIndent bool) {
@@ -682,7 +670,7 @@ func (df *DefaultFormatter) PrintRangeFunction(rf nodes.RangeFunction, withInden
 	}
 
 	if rf.Alias != nil {
-		df.printer.PrintStringNoIndent(" ")
+		df.printer.PrintString(" ")
 		df.printNode(*rf.Alias, false)
 	}
 }
@@ -692,23 +680,23 @@ func (df *DefaultFormatter) PrintFuncCall(fc nodes.FuncCall, withIndent bool) {
 		df.printNode(name, withIndent)
 	}
 
-	df.printer.PrintStringNoIndent("(")
+	df.printer.PrintString("(")
 	for i, arg := range fc.Args.Items {
 		df.printNode(arg, false)
 		if i < len(fc.Args.Items)-1 {
-			df.printer.PrintStringNoIndent(", ")
+			df.printer.PrintString(", ")
 		}
 	}
-	df.printer.PrintStringNoIndent(")")
+	df.printer.PrintString(")")
 }
 
 func (df *DefaultFormatter) PrintSortBy(sb nodes.SortBy, withIndent bool) {
 	df.printNode(sb.Node, withIndent)
 	if sb.SortbyDir == nodes.SORTBY_DESC {
-		df.printer.PrintKeywordNoIndent(" desc")
+		df.printer.PrintKeyword(" desc")
 	}
 	if sb.SortbyNulls == nodes.SORTBY_NULLS_LAST {
-		df.printer.PrintKeywordNoIndent("nulls last")
+		df.printer.PrintKeyword("nulls last")
 	}
 }
 
@@ -729,7 +717,7 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 		df.PrintSelectStatement(node.(nodes.SelectStmt))
 
 	case nodes.IntoClause:
-		df.printer.PrintKeywordNoIndent(" into ")
+		df.printer.PrintKeyword(" into ")
 
 	case nodes.ResTarget:
 		df.PrintResTarget(node.(nodes.ResTarget), withIndent)
@@ -738,18 +726,10 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 		df.PrintColumnRef(node.(nodes.ColumnRef), withIndent)
 
 	case nodes.A_Star:
-		if withIndent {
-			df.printer.PrintString("*")
-		} else {
-			df.printer.PrintStringNoIndent("*")
-		}
+		df.printer.PrintString("*", withIndent)
 
 	case nodes.String:
-		if withIndent {
-			df.printer.PrintString(node.(nodes.String).Str)
-		} else {
-			df.printer.PrintStringNoIndent(node.(nodes.String).Str)
-		}
+		df.printer.PrintString(node.(nodes.String).Str, withIndent)
 
 	case nodes.JoinExpr:
 		df.PrintJoin(false, node.(nodes.JoinExpr))
@@ -767,11 +747,7 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 		df.PrintAConst(node.(nodes.A_Const), withIndent)
 
 	case nodes.Integer:
-		if withIndent {
-			df.printer.PrintInt64(node.(nodes.Integer).Ival)
-		} else {
-			df.printer.PrintInt64NoIndent(node.(nodes.Integer).Ival)
-		}
+		df.printer.PrintInt64(node.(nodes.Integer).Ival, withIndent)
 
 	case nodes.Float:
 		val, err := strconv.ParseFloat(node.(nodes.Float).Str, 64)
@@ -779,11 +755,7 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 			df.p(node.(nodes.Float).Str + " failed to parse as a float")
 		}
 
-		if withIndent {
-			df.printer.PrintFloat64(val)
-		} else {
-			df.printer.PrintFloat64NoIndent(val)
-		}
+		df.printer.PrintFloat64(val, withIndent)
 
 	case nodes.NullTest:
 		df.PrintNullTest(node.(nodes.NullTest), withIndent)

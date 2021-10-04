@@ -66,50 +66,30 @@ func (bp *BasePrinter) makeIndent() string {
 	return v
 }
 
-// AutoIndentAndPrintString Manages indentation and prints values
-func (bp *BasePrinter) AutoIndentAndPrintString(val string) {
-	bp.currentIndent++
-	bp.sb.WriteString(bp.makeIndent())
-	bp.sb.WriteString(val)
-	bp.currentIndent--
-}
-
 // PrintString Prints a string on the current indentation level
-func (bp *BasePrinter) PrintString(val string) {
-	bp.sb.WriteString(bp.makeIndent())
-	bp.PrintStringNoIndent(val)
-}
-
-// PrintStringNoIndent Prints a string
-func (bp *BasePrinter) PrintStringNoIndent(val string) {
+func (bp *BasePrinter) PrintString(val string, withIndent ...bool) {
+	if len(withIndent) > 0 && withIndent[0] {
+		bp.sb.WriteString(bp.makeIndent())
+	}
 	bp.sb.WriteString(val)
 }
 
 // PrintInt Prints an int on the current indentation level
-func (bp *BasePrinter) PrintInt(val int) {
-	bp.PrintInt64(int64(val))
+func (bp *BasePrinter) PrintInt(val int, withIndent ...bool) {
+	bp.PrintInt64(int64(val), withIndent...)
 }
 
-func (bp *BasePrinter) PrintInt64(val int64) {
-	bp.sb.WriteString(bp.makeIndent())
-	bp.PrintInt64NoIndent(val)
-}
-
-// PrintIntNoIndent Prints an int on the current indentation level
-func (bp *BasePrinter) PrintIntNoIndent(val int) {
-	bp.PrintInt64NoIndent(int64(val))
-}
-
-func (bp *BasePrinter) PrintInt64NoIndent(val int64) {
+func (bp *BasePrinter) PrintInt64(val int64, withIndent ...bool) {
+	if len(withIndent) > 0 && withIndent[0] {
+		bp.sb.WriteString(bp.makeIndent())
+	}
 	bp.sb.WriteString(fmt.Sprintf("%d", val))
 }
 
-func (bp *BasePrinter) PrintFloat64(val float64) {
-	bp.sb.WriteString(bp.makeIndent())
-	bp.PrintFloat64NoIndent(val)
-}
-
-func (bp *BasePrinter) PrintFloat64NoIndent(val float64) {
+func (bp *BasePrinter) PrintFloat64(val float64, withIndent ...bool) {
+	if len(withIndent) > 0 && withIndent[0] {
+		bp.sb.WriteString(bp.makeIndent())
+	}
 	bp.sb.WriteString(fmt.Sprintf("%f", val))
 }
 
@@ -127,15 +107,12 @@ func (bp *BasePrinter) DecIndent() {
 	}
 }
 
-// PrintKeywordNoIndent Print a keyword with no indent
-func (bp *BasePrinter) PrintKeywordNoIndent(keyword string) {
-	bp.sb.WriteString(bp.keywordFormatter(keyword))
-}
-
 // PrintKeyword Print a keyword on the current indentation level
-func (bp *BasePrinter) PrintKeyword(keyword string) {
-	bp.sb.WriteString(bp.makeIndent())
-	bp.PrintKeywordNoIndent(keyword)
+func (bp *BasePrinter) PrintKeyword(keyword string, withIndent ...bool) {
+	if len(withIndent) > 0 && withIndent[0] {
+		bp.sb.WriteString(bp.makeIndent())
+	}
+	bp.sb.WriteString(bp.keywordFormatter(keyword))
 }
 
 // NewLine prints a newline

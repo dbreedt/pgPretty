@@ -1,2 +1,5 @@
 pgPretty
 .vscode/
+
+# sonarqube files
+.scannerwork
