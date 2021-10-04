@@ -6,6 +6,7 @@ type SqlPrinter interface {
 	PrintInt64(val int64, withIndent ...bool)
 	PrintFloat64(val float64, withIndent ...bool)
 	PrintKeyword(keyword string, withIndent ...bool)
+	PrintFunction(functionName string, withIndent ...bool)
 	IncIndent()
 	DecIndent()
 	NewLine()

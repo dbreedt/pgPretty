@@ -17,11 +17,13 @@ func main() {
 		fileName        string
 		useTabs         bool
 		capsKeywords    bool
+		capsFunctions   bool
 		numIndentations int
 	)
 	flag.StringVar(&fileName, "f", "", "name of the sql file you want formatted")
 	flag.BoolVar(&useTabs, "t", false, "use tabs instead of spaces (default is spaces)")
 	flag.BoolVar(&capsKeywords, "u", false, "use upper case keywords (default is lower case)")
+	flag.BoolVar(&capsFunctions, "uf", false, "use upper case function names (default is lower case)")
 	flag.IntVar(&numIndentations, "i", 2, "how many tabs/spaces to use for a single indent (default 2)")
 
 	flag.Parse()
@@ -89,7 +91,7 @@ func main() {
 
 	// remove any illegal named parameters and store them for later processing
 	workingSQL, detectedParameters := helpers.ProcessNamedParameters(sql)
-	printer := printers.NewBasePrinter(useTabs, capsKeywords, numIndentations)
+	printer := printers.NewBasePrinter(useTabs, capsKeywords, capsFunctions, numIndentations)
 	formatter := formatters.NewDefaultFormatterWithParameters(printer, detectedParameters)
 
 	prettySql, err := processors.ProcessSQL(workingSQL, formatter)

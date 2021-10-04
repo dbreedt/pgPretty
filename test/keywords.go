@@ -6,6 +6,7 @@ import (
 )
 
 type Keywords struct {
+	FnUpper   bool
 	Ws        string
 	Select    string
 	With      string
@@ -24,7 +25,6 @@ type Keywords struct {
 	Left      string
 	Right     string
 	Outer     string
-	Count     string
 	Over      string
 	Partition string
 	Lower     string
@@ -50,14 +50,19 @@ type Keywords struct {
 	Case      string
 }
 
-func NewKeywords(upper bool) Keywords {
+func NewKeywords(upperCaseKeywords, upperCaseFunctions bool) Keywords {
 	retVal := Keywords{}
 
 	val := reflect.Indirect(reflect.ValueOf(&retVal))
 	for i := 0; i < val.NumField(); i++ {
 		name := val.Type().Field(i).Name
 
-		if upper {
+		if name == "FnUpper" {
+			val.Field(i).SetBool(upperCaseFunctions)
+			continue
+		}
+
+		if upperCaseKeywords {
 			name = strings.ToUpper(name)
 		} else {
 			name = strings.ToLower(name)
@@ -67,4 +72,12 @@ func NewKeywords(upper bool) Keywords {
 	}
 
 	return retVal
+}
+
+func (k Keywords) Fn(name string) string {
+	if k.FnUpper {
+		return strings.ToUpper(name)
+	}
+
+	return strings.ToLower(name)
 }

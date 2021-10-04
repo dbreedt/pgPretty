@@ -677,7 +677,11 @@ func (df *DefaultFormatter) PrintRangeFunction(rf nodes.RangeFunction, withInden
 
 func (df *DefaultFormatter) PrintFuncCall(fc nodes.FuncCall, withIndent bool) {
 	for _, name := range fc.Funcname.Items {
-		df.printNode(name, withIndent)
+		if s, ok := name.(nodes.String); ok {
+			df.printer.PrintFunction(s.Str, withIndent)
+		} else {
+			df.printNode(name, withIndent)
+		}
 	}
 
 	df.printer.PrintString("(")

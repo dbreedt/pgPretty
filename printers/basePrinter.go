@@ -8,23 +8,29 @@ import (
 type caseFormatter func(s string) string
 
 type BasePrinter struct {
-	indentation      string
-	currentIndent    int
-	keywordFormatter caseFormatter
-	sb               strings.Builder
-	indentCache      map[int]string
+	indentation       string
+	currentIndent     int
+	keywordFormatter  caseFormatter
+	functionFormatter caseFormatter
+	sb                strings.Builder
+	indentCache       map[int]string
 }
 
 // NewBasePrinter Creates a custom BasePrinter
-func NewBasePrinter(tabs, keywordInCaps bool, numIndentations int) *BasePrinter {
+func NewBasePrinter(tabs, keywordInCaps, functionInCaps bool, numIndentations int) *BasePrinter {
 	retVal := &BasePrinter{
-		currentIndent:    0,
-		keywordFormatter: strings.ToLower,
-		indentCache:      make(map[int]string, 5),
+		currentIndent:     0,
+		keywordFormatter:  strings.ToLower,
+		functionFormatter: strings.ToLower,
+		indentCache:       make(map[int]string, 5),
 	}
 
 	if keywordInCaps {
 		retVal.keywordFormatter = strings.ToUpper
+	}
+
+	if functionInCaps {
+		retVal.functionFormatter = strings.ToUpper
 	}
 
 	if tabs {
@@ -37,23 +43,23 @@ func NewBasePrinter(tabs, keywordInCaps bool, numIndentations int) *BasePrinter 
 }
 
 // NewSpacePrinter Create a semi generic BasePrinter that uses spaces
-func NewSpacePrinter(keywordInCaps bool, numIndentations int) *BasePrinter {
-	return NewBasePrinter(false, keywordInCaps, numIndentations)
+func NewSpacePrinter(keywordInCaps, functionInCaps bool, numIndentations int) *BasePrinter {
+	return NewBasePrinter(false, keywordInCaps, functionInCaps, numIndentations)
 }
 
-// NewDefaultSpacePrinter Create a semi generic BasePrinter that uses spaces
+// NewDefaultSpacePrinter Create a semi generic BasePrinter that uses spaces, lowercase keywords and lowercase function names
 func NewDefaultSpacePrinter() *BasePrinter {
-	return NewBasePrinter(false, false, 2)
+	return NewBasePrinter(false, false, false, 2)
 }
 
 // NewTabPrinter Create a semi generic BasePrinter that uses tabs
-func NewTabPrinter(keywordInCaps bool, numIndentations int) *BasePrinter {
-	return NewBasePrinter(true, keywordInCaps, numIndentations)
+func NewTabPrinter(keywordInCaps, functionInCaps bool, numIndentations int) *BasePrinter {
+	return NewBasePrinter(true, keywordInCaps, functionInCaps, numIndentations)
 }
 
-// NewDefaultTabPrinter Create a semi generic BasePrinter that uses spaces
+// NewDefaultTabPrinter Create a semi generic BasePrinter that uses tabs, lowercase keywords and lowercase function names
 func NewDefaultTabPrinter() *BasePrinter {
-	return NewBasePrinter(true, false, 1)
+	return NewBasePrinter(true, false, false, 1)
 }
 
 func (bp *BasePrinter) makeIndent() string {
@@ -66,7 +72,6 @@ func (bp *BasePrinter) makeIndent() string {
 	return v
 }
 
-// PrintString Prints a string on the current indentation level
 func (bp *BasePrinter) PrintString(val string, withIndent ...bool) {
 	if len(withIndent) > 0 && withIndent[0] {
 		bp.sb.WriteString(bp.makeIndent())
@@ -74,7 +79,6 @@ func (bp *BasePrinter) PrintString(val string, withIndent ...bool) {
 	bp.sb.WriteString(val)
 }
 
-// PrintInt Prints an int on the current indentation level
 func (bp *BasePrinter) PrintInt(val int, withIndent ...bool) {
 	bp.PrintInt64(int64(val), withIndent...)
 }
@@ -93,12 +97,10 @@ func (bp *BasePrinter) PrintFloat64(val float64, withIndent ...bool) {
 	bp.sb.WriteString(fmt.Sprintf("%f", val))
 }
 
-// IncIndent Manually control the indent
 func (bp *BasePrinter) IncIndent() {
 	bp.currentIndent++
 }
 
-// DecIndent Manually control the indent
 func (bp *BasePrinter) DecIndent() {
 	bp.currentIndent--
 
@@ -107,7 +109,6 @@ func (bp *BasePrinter) DecIndent() {
 	}
 }
 
-// PrintKeyword Print a keyword on the current indentation level
 func (bp *BasePrinter) PrintKeyword(keyword string, withIndent ...bool) {
 	if len(withIndent) > 0 && withIndent[0] {
 		bp.sb.WriteString(bp.makeIndent())
@@ -115,7 +116,13 @@ func (bp *BasePrinter) PrintKeyword(keyword string, withIndent ...bool) {
 	bp.sb.WriteString(bp.keywordFormatter(keyword))
 }
 
-// NewLine prints a newline
+func (bp *BasePrinter) PrintFunction(functionName string, withIndent ...bool) {
+	if len(withIndent) > 0 && withIndent[0] {
+		bp.sb.WriteString(bp.makeIndent())
+	}
+	bp.sb.WriteString(bp.functionFormatter(functionName))
+}
+
 func (bp *BasePrinter) NewLine() {
 	bp.sb.WriteString("\n")
 }

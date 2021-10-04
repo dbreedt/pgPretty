@@ -87,6 +87,8 @@ Usage of ./pgPretty:
         how many tabs/spaces to use for a single indent (default 2) (default 2)
   -t    use tabs instead of spaces (default is spaces)
   -u    use upper case keywords (default is lower case)
+  -uf
+        use upper case function names (default is lower case)
 ```
 
 ### Build

@@ -30,7 +30,7 @@ func TestSqlFiles(t *testing.T) {
 			continue
 		}
 
-		spacePrinter := printers.NewBasePrinter(false, true, 2)
+		spacePrinter := printers.NewBasePrinter(false, true, true, 2)
 		dfSpace := formatters.NewDefaultFormatter(spacePrinter)
 
 		srcData, err := ioutil.ReadFile(path.Join(baseDir, "input", file.Name()))
@@ -51,7 +51,7 @@ func TestSqlFiles(t *testing.T) {
 			t.Fail()
 		}
 
-		sqlExp, err := processKeywords(string(expectedData), true, false)
+		sqlExp, err := processKeywords(string(expectedData), true, true, false)
 		if err != nil {
 			t.Fatal("keywords", file.Name(), err)
 		}
@@ -68,7 +68,7 @@ func TestSqlFiles(t *testing.T) {
 			t.Fatal(file.Name(), "EXPECTED SQL IS INVALID", err)
 		}
 
-		tabPrinter := printers.NewBasePrinter(true, false, 1)
+		tabPrinter := printers.NewBasePrinter(true, false, false, 1)
 		dfTab := formatters.NewDefaultFormatter(tabPrinter)
 
 		sqlOut, err = processors.ProcessSQL(string(srcData), dfTab)
@@ -77,7 +77,7 @@ func TestSqlFiles(t *testing.T) {
 			t.Fail()
 		}
 
-		sqlExp, err = processKeywords(string(expectedData), false, true)
+		sqlExp, err = processKeywords(string(expectedData), false, false, true)
 		if err != nil {
 			t.Fatal("keywords", file.Name(), err)
 		}
@@ -90,14 +90,14 @@ func TestSqlFiles(t *testing.T) {
 	}
 }
 
-func processKeywords(sql string, upper bool, tabs bool) (string, error) {
+func processKeywords(sql string, upperKeywords, upperFunctions, tabs bool) (string, error) {
 	templ, err := template.New("keywords").Parse(sql)
 	if err != nil {
 		return "", err
 	}
 
 	output := bytes.Buffer{}
-	kw := NewKeywords(upper)
+	kw := NewKeywords(upperKeywords, upperFunctions)
 	if tabs {
 		kw.Ws = "\t"
 	} else {
