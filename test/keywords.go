@@ -48,6 +48,8 @@ type Keywords struct {
 	Nulls     string
 	Last      string
 	Case      string
+	Filter    string
+	Having    string
 }
 
 func NewKeywords(upperCaseKeywords, upperCaseFunctions bool) Keywords {

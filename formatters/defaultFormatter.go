@@ -163,9 +163,32 @@ func (df *DefaultFormatter) PrintSelectStatementLimitClause(ss nodes.SelectStmt)
 }
 
 func (df *DefaultFormatter) PrintSelectStatementGroupByClause(ss nodes.SelectStmt) {
+	if len(ss.GroupClause.Items) > 0 {
+		df.printer.NewLine()
+		df.printer.PrintKeyword("group by", true)
+		df.printer.IncIndent()
+		df.printer.NewLine()
+
+		for i, item := range ss.GroupClause.Items {
+			df.printNode(item, true)
+			if i < len(ss.GroupClause.Items)-1 {
+				df.printer.PrintString(",")
+				df.printer.NewLine()
+			}
+		}
+
+		df.printer.DecIndent()
+	}
 }
 
 func (df *DefaultFormatter) PrintSelectStatementHavingClause(ss nodes.SelectStmt) {
+	if ss.HavingClause != nil {
+		df.printer.NewLine()
+		df.printer.PrintKeyword("having", true)
+		df.printer.IncIndent()
+		df.printer.NewLine()
+		df.printNode(ss.HavingClause, true)
+	}
 }
 
 func (df *DefaultFormatter) PrintSelectStatement(ss nodes.SelectStmt) {
@@ -200,7 +223,8 @@ func (df *DefaultFormatter) PrintResTarget(nt nodes.ResTarget, withIndent bool) 
 	df.printNode(nt.Val, withIndent)
 
 	if len(retVal) > 0 {
-		df.printer.PrintString(" " + retVal)
+		df.printer.PrintKeyword(" as ")
+		df.printer.PrintString("\"" + retVal + "\"")
 	}
 }
 
@@ -685,13 +709,50 @@ func (df *DefaultFormatter) PrintFuncCall(fc nodes.FuncCall, withIndent bool) {
 	}
 
 	df.printer.PrintString("(")
+
+	if fc.AggDistinct {
+		df.printer.PrintKeyword("distinct ")
+	}
+
+	if fc.AggStar {
+		df.printer.PrintString("*")
+	}
+
 	for i, arg := range fc.Args.Items {
 		df.printNode(arg, false)
 		if i < len(fc.Args.Items)-1 {
 			df.printer.PrintString(", ")
 		}
 	}
+
+	if len(fc.AggOrder.Items) > 0 {
+		df.printer.PrintKeyword(" order by")
+		for i, item := range fc.AggOrder.Items {
+			df.printNode(item, false)
+			if i < len(fc.AggOrder.Items)-1 {
+				df.printer.PrintString(", ")
+			}
+		}
+	}
 	df.printer.PrintString(")")
+
+	if fc.AggFilter != nil {
+		df.printer.NewLine()
+		df.printer.IncIndent()
+		df.printer.PrintKeyword("filter ", true)
+		df.printer.PrintString("(")
+		df.printer.NewLine()
+		df.printer.IncIndent()
+		df.printer.PrintKeyword("where", true)
+		df.printer.NewLine()
+		df.printer.IncIndent()
+		df.printNode(fc.AggFilter, true)
+		df.printer.DecIndent()
+		df.printer.DecIndent()
+		df.printer.NewLine()
+		df.printer.PrintString(")", true)
+		df.printer.DecIndent()
+	}
 }
 
 func (df *DefaultFormatter) PrintSortBy(sb nodes.SortBy, withIndent bool) {
