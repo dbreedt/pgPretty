@@ -13,3 +13,4 @@ and (
     or (t.opt is null and t.not_opt)
 )
 and x = 22
+and t.name ilike '%bob%'

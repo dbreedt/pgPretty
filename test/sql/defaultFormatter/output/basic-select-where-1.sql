@@ -20,3 +20,4 @@
 {{ .Ws}}{{ .Ws}})
 {{ .Ws}})
 {{ .Ws}}{{ .And}} x = 22
+{{ .Ws}}{{ .And}} t.name {{ .Ilike}} '%bob%'

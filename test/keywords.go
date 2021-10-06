@@ -50,6 +50,7 @@ type Keywords struct {
 	Case      string
 	Filter    string
 	Having    string
+	Ilike     string
 }
 
 func NewKeywords(upperCaseKeywords, upperCaseFunctions bool) Keywords {

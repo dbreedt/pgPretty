@@ -327,17 +327,8 @@ func (df *DefaultFormatter) PrintJoinType(joinType nodes.JoinType, withIndent bo
 	case nodes.JOIN_RIGHT:
 		jt = "right join"
 
-	case nodes.JOIN_SEMI:
-		jt = "exists"
-
-	case nodes.JOIN_ANTI:
-		jt = "not exists"
-
-	case nodes.JOIN_UNIQUE_OUTER:
-		df.p("join type - unique outer")
-
-	case nodes.JOIN_UNIQUE_INNER:
-		df.p("join type - unique inner")
+	default:
+		df.p(fmt.Sprintf("join type - %+v not supported", joinType))
 	}
 
 	if len(jt) > 0 {
@@ -699,7 +690,7 @@ func (df *DefaultFormatter) PrintRangeFunction(rf nodes.RangeFunction, withInden
 	}
 }
 
-func (df *DefaultFormatter) PrintFuncCall(fc nodes.FuncCall, withIndent bool) {
+func (df *DefaultFormatter) PrintFuncCallName(fc nodes.FuncCall, withIndent bool) {
 	for _, name := range fc.Funcname.Items {
 		if s, ok := name.(nodes.String); ok {
 			df.printer.PrintFunction(s.Str, withIndent)
@@ -707,24 +698,18 @@ func (df *DefaultFormatter) PrintFuncCall(fc nodes.FuncCall, withIndent bool) {
 			df.printNode(name, withIndent)
 		}
 	}
+}
 
-	df.printer.PrintString("(")
-
-	if fc.AggDistinct {
-		df.printer.PrintKeyword("distinct ")
-	}
-
-	if fc.AggStar {
-		df.printer.PrintString("*")
-	}
-
+func (df *DefaultFormatter) PrintFuncCallArgs(fc nodes.FuncCall, withIndent bool) {
 	for i, arg := range fc.Args.Items {
 		df.printNode(arg, false)
 		if i < len(fc.Args.Items)-1 {
 			df.printer.PrintString(", ")
 		}
 	}
+}
 
+func (df *DefaultFormatter) PrintFuncCallOrder(fc nodes.FuncCall, withIndent bool) {
 	if len(fc.AggOrder.Items) > 0 {
 		df.printer.PrintKeyword(" order by")
 		for i, item := range fc.AggOrder.Items {
@@ -734,8 +719,9 @@ func (df *DefaultFormatter) PrintFuncCall(fc nodes.FuncCall, withIndent bool) {
 			}
 		}
 	}
-	df.printer.PrintString(")")
+}
 
+func (df *DefaultFormatter) PrintFuncCallAggFilter(fc nodes.FuncCall, withIndent bool) {
 	if fc.AggFilter != nil {
 		df.printer.NewLine()
 		df.printer.IncIndent()
@@ -755,13 +741,32 @@ func (df *DefaultFormatter) PrintFuncCall(fc nodes.FuncCall, withIndent bool) {
 	}
 }
 
+func (df *DefaultFormatter) PrintFuncCall(fc nodes.FuncCall, withIndent bool) {
+	df.PrintFuncCallName(fc, withIndent)
+
+	df.printer.PrintString("(")
+
+	if fc.AggDistinct {
+		df.printer.PrintKeyword("distinct ")
+	}
+
+	if fc.AggStar {
+		df.printer.PrintString("*")
+	}
+
+	df.PrintFuncCallArgs(fc, withIndent)
+	df.PrintFuncCallOrder(fc, withIndent)
+	df.printer.PrintString(")")
+	df.PrintFuncCallAggFilter(fc, withIndent)
+}
+
 func (df *DefaultFormatter) PrintSortBy(sb nodes.SortBy, withIndent bool) {
 	df.printNode(sb.Node, withIndent)
 	if sb.SortbyDir == nodes.SORTBY_DESC {
 		df.printer.PrintKeyword(" desc")
 	}
 	if sb.SortbyNulls == nodes.SORTBY_NULLS_LAST {
-		df.printer.PrintKeyword("nulls last")
+		df.printer.PrintKeyword(" nulls last")
 	}
 }
 
@@ -774,6 +779,10 @@ func (df *DefaultFormatter) PrintNode(node nodes.Node) {
 //
 // Note: Other `node` printers call this function to print `node` objects, so this is a generic `node` printer
 func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
+	if node == nil {
+		return
+	}
+
 	switch node.(type) {
 	case nodes.RawStmt:
 		df.printNode(node.(nodes.RawStmt).Stmt, withIndent)
@@ -838,9 +847,7 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 		df.PrintSubLink(node.(nodes.SubLink), withIndent)
 
 	case nodes.Alias:
-		if node != nil {
-			df.PrintAlias(node.(nodes.Alias))
-		}
+		df.PrintAlias(node.(nodes.Alias))
 
 	case nodes.TypeCast:
 		df.PrintTypeCast(node.(nodes.TypeCast), withIndent)
@@ -851,9 +858,7 @@ func (df *DefaultFormatter) printNode(node nodes.Node, withIndent bool) {
 	case nodes.List:
 		list := node.(nodes.List)
 		for _, item := range list.Items {
-			if item != nil {
-				df.printNode(item, withIndent)
-			}
+			df.printNode(item, withIndent)
 		}
 
 	case nodes.FuncCall:

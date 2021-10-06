@@ -4,4 +4,4 @@
 {{ .Ws}}c,
 {{ .Ws}}d
 {{ .From}}
-{{ .Ws}}tab7
+{{ .Ws}}some_schema.tab7

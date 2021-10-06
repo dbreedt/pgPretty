@@ -1,1 +1,1 @@
-select a,b,c,d from tab7
+select a,b,c,d from some_schema.tab7
